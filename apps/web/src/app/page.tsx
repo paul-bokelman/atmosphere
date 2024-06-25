@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, ChangeEvent, FormEvent } from "react";
-import { Button } from "@repo/ui/button";
 
-const API_HOST = process.env.NEXT_PUBLIC_API_HOST || "http://localhost:3001";
+const API_HOST = process.env.NEXT_PUBLIC_API_HOST || "http://127.0.0.1:5000";
 
 export default function Web() {
   const [name, setName] = useState<string>("");
@@ -15,8 +14,7 @@ export default function Web() {
     setError(undefined);
   }, [name]);
 
-  const onChange = (e: ChangeEvent<HTMLInputElement>) =>
-    setName(e.target.value);
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => setName(e.target.value);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,14 +38,8 @@ export default function Web() {
       <h1>Web</h1>
       <form onSubmit={onSubmit}>
         <label htmlFor="name">Name </label>
-        <input
-          type="text"
-          name="name"
-          id="name"
-          value={name}
-          onChange={onChange}
-        ></input>
-        <Button type="submit">Submit</Button>
+        <input type="text" name="name" id="name" value={name} onChange={onChange}></input>
+        <button type="submit">Submit</button>
       </form>
       {error && (
         <div>
@@ -59,7 +51,9 @@ export default function Web() {
         <div>
           <h3>Greeting</h3>
           <p>{response.message}</p>
-          <Button onClick={onReset}>Reset</Button>
+          <button type="button" onClick={onReset}>
+            Reset
+          </button>
         </div>
       )}
     </div>
