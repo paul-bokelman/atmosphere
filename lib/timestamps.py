@@ -18,7 +18,8 @@ model = genai.GenerativeModel(model_name='gemini-1.5-flash',
                               system_instruction=instructions, 
                               generation_config={"response_mime_type": "application/json"})
 
-aud = genai.get_file(name="files/8l3chfazgyw3") # get uploaded file from google servers
+f = genai.upload_file("./media/woz1-rec.mp3")
+aud = genai.get_file(name=f.name) # get uploaded file from google servers
 response = model.generate_content([aud]) # generate timestamps and keywords in JSON format
 
 # output response to json file
