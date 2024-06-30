@@ -1,5 +1,5 @@
-from peewee import SqliteDatabase, SQL, Model, CharField, ForeignKeyField
-from typing import TypedDict
+from peewee import SqliteDatabase, SQL, Model, CharField, AutoField, ForeignKeyField
+from typing import TypedDict, List
 
 db = SqliteDatabase('sfx.db')
 
@@ -9,6 +9,9 @@ class SoundSchema(TypedDict):
 
 class SoundSchemaWithId(SoundSchema, TypedDict):
     id: int
+
+class SoundSchemaWithKeywords(SoundSchemaWithId):
+    keywords: List[str]
 
 class KeywordSchema(TypedDict):
     label: str
@@ -22,6 +25,7 @@ class BaseModel(Model):
 
 # individual keywords for reference
 class Keyword(BaseModel):
+    id = AutoField()
     label = CharField() # the value of the keyword
 
     class Meta:
@@ -30,6 +34,7 @@ class Keyword(BaseModel):
 
 # sound effect model 
 class Sound(BaseModel):
+    id = AutoField()
     description = CharField() # simple description of sound
     url = CharField() # store url to sound effect (would be nice to store raw audio)
 

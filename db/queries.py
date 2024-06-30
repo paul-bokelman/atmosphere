@@ -1,4 +1,4 @@
-from models import Keyword, Sound, SoundKeyword, SoundSchema, SoundSchemaWithId
+from db.models import Keyword, Sound, SoundKeyword, SoundSchema, SoundSchemaWithId, SoundSchemaWithKeywords
 from typing import List
 
 # ---------------------------------- KEYWORD --------------------------------- #
@@ -29,12 +29,12 @@ def get_keywords() -> List[str]:
 # ----------------------------------- SOUND ---------------------------------- #
 
 # get sound
-def get_sound(id: int) -> int:
+def get_sound(id: int) -> SoundSchemaWithId | None:
     try: 
-        sound = Sound.get_by_id(id)
-        return sound
+        sound = Sound.get(Sound.id == id)
+        return {"id": sound.id, "description": sound.description, "url": sound.url}
     except: 
-        return -1
+        return None
 
 # insert sound
 def insert_sound(sound: SoundSchema) -> int:
@@ -43,9 +43,18 @@ def insert_sound(sound: SoundSchema) -> int:
     return new_sound.get_id()
 
 # get all sounds
-def get_sounds() -> List[str]:
-    sounds = Sound.select()
-    return [sound for sound in sounds]
+def get_sounds() -> List[SoundSchemaWithKeywords]:
+    sounds = Sound.select() # get all sounds
+
+    # get all keywords for each sound
+    sounds_with_keywords: List[SoundSchemaWithKeywords] = []
+    for sound in sounds:
+        keywords = Keyword.select().join(SoundKeyword).join(Sound).where(Sound.id == sound.id)
+        keywords = [keyword.label for keyword in keywords]
+        sounds_with_keywords.append({"id": sound.id, "description": sound.description, "url": sound.url, "keywords": keywords})
+
+    return sounds_with_keywords
+    
 
 # ------------------------------- SOUND_KEYWORD ------------------------------ #
 
