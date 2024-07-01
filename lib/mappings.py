@@ -1,4 +1,4 @@
-from typing import List
+from typing import Optional, List
 import json
 from termcolor import colored
 import google.generativeai as genai
@@ -18,7 +18,7 @@ You will be given a list of keywords and your job is to compare them with pairs 
 """
 
 # ingest timestamps and properly map to sounds
-def generate(timestamps: List[TimestampSchema]) -> List[MappedTimestampSchema]:
+def generate(timestamps: List[TimestampSchema], out: Optional[str] = None) -> List[MappedTimestampSchema]:
     mapped_timestamps: List[MappedTimestampSchema] = [] # newly mapped timestamps
     sounds = get_sounds()
 
@@ -53,5 +53,10 @@ def generate(timestamps: List[TimestampSchema]) -> List[MappedTimestampSchema]:
 
         # add mapped timestamp to list
         mapped_timestamps.append({ "interval": timestamp['interval'], "keywords": timestamp['keywords'], "sound": selected_sound })
+
+    # write mapped timestamps to file if specified
+    if out is not None:
+        with open(out, 'w') as file:
+            json.dump(mapped_timestamps, file, indent=4)
 
     return mapped_timestamps

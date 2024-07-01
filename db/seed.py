@@ -1,28 +1,55 @@
-from db.models import Keyword, Sound, SoundKeyword
 from termcolor import colored
 import inquirer
+from db.models import Keyword, Sound, SoundKeyword, db
 from db.data.data import relations
 from db.queries import get_or_insert_keyword, insert_sound, insert_relationships
 
+# drop and create tables
+def create_tables():
+    # confirmation before dropping tables
+    questions = [inquirer.Confirm("confirmation", message="This action will reset the database, continue?", default=False)]
+    answers = inquirer.prompt(questions)
+    
+    # no answers -> return
+    if answers is None:
+        print(colored("No answers, returning to menu...", "red"))
+        return
 
+    # not yes -> return
+    if not answers['confirmation']:
+        print(colored("Create tables cancelled, returning to menu...", "yellow"))
+        return
+
+    print(colored("Creating tables...", "grey"))
+
+    # drop and create tables
+    models = (Keyword, Sound, SoundKeyword)
+    db.connect()
+    db.drop_tables(models)
+    db.create_tables(models)
+
+    print(colored("Successfully created tables ", "green"))
+
+# seed database with data
 def seed():
     # confirmation before wipe
-
     questions = [
         inquirer.Confirm("confirmation", message="This action will delete all current entries, continue?", default=False),
     ]
     
     answers = inquirer.prompt(questions)
-
+    
+    # no answers -> return
     if answers is None:
         print(colored("No answers, returning to menu...", "red"))
         return
-
-    confirmation = answers['confirmation']
-
-    if not confirmation:
-        print(colored("Seed cancelled, returning to menu...", "grey"))
+    
+    # not yes -> return
+    if not answers['confirmation']:
+        print(colored("Seed cancelled, returning to menu...", "yellow"))
         return
+    
+    print(colored("Seeding database...", "grey"))
 
     # wipe database
     Keyword().delete().execute()
@@ -38,7 +65,7 @@ def seed():
             id = get_or_insert_keyword(keyword)
             keyword_ids.append(id)
         
-        sound_id = insert_sound({'description': relation['description'], 'url': relation['url']}) #  add sound
-        insert_relationships(sound_id, keyword_ids) # form connections between sound and keywords
+        sound_id = insert_sound({'description': relation['description'], 'gid': relation['gid']}) # add sound to db
+        insert_relationships(sound_id, keyword_ids) # create relationship between sound and keywords
 
-    print(f'{colored("Successfully seeded database", "green")}')
+    print(f'{colored("Successfully seeded database 🌴", "green")}')

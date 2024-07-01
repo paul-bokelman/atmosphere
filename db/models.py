@@ -5,7 +5,7 @@ db = SqliteDatabase('sfx.db')
 
 class SoundSchema(TypedDict):
     description: str
-    url: str
+    gid: str
 
 class SoundSchemaWithId(SoundSchema, TypedDict):
     id: int
@@ -36,7 +36,7 @@ class Keyword(BaseModel):
 class Sound(BaseModel):
     id = AutoField()
     description = CharField() # simple description of sound
-    url = CharField() # store url to sound effect (would be nice to store raw audio)
+    gid = CharField() # store google drive id to retrieve sound
 
     class Meta:
         table_name = 'sounds'
@@ -48,6 +48,3 @@ class SoundKeyword(BaseModel):
 
     class Meta:
         table_name = 'sound_keywords_relationships'
-
-db.connect()
-db.create_tables([Keyword, Sound, SoundKeyword])
