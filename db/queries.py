@@ -32,13 +32,13 @@ def get_keywords() -> List[str]:
 def get_sound(id: int) -> SoundSchemaWithId | None:
     try: 
         sound = Sound.get(Sound.id == id)
-        return {"id": sound.id, "description": sound.description, "gid": sound.gid}
+        return {"id": sound.id, "name": sound.name, "category": sound.category, "ext": sound.ext}
     except: 
         return None
 
 # insert sound
 def insert_sound(sound: SoundSchema) -> int:
-    new_sound = Sound(description=sound['description'], gid=sound['gid'])
+    new_sound = Sound(name=sound['name'], category=sound['category'], ext=sound['ext'])
     new_sound.save()
     return new_sound.get_id()
 
@@ -51,7 +51,7 @@ def get_sounds() -> List[SoundSchemaWithKeywords]:
     for sound in sounds:
         keywords = Keyword.select().join(SoundKeyword).join(Sound).where(Sound.id == sound.id)
         keywords = [keyword.label for keyword in keywords]
-        sounds_with_keywords.append({"id": sound.id, "description": sound.description, "gid": sound.gid, "keywords": keywords})
+        sounds_with_keywords.append({"id": sound.id, "name": sound.name, "category": sound.category, "ext": sound.ext, "keywords": keywords})
 
     return sounds_with_keywords
     
@@ -65,4 +65,4 @@ def insert_relationships(sound_id: int, keyword_ids: List[int]):
 # get sounds with matching keywords
 def get_associated_sounds(keywords: List[str]) -> List[SoundSchemaWithId]:
     associated_sounds = Sound.select().join(SoundKeyword).join(Keyword).where(Keyword.label.in_(keywords))
-    return [{"id": s.id, "description": s.description, "gid": s.gid} for s in associated_sounds]
+    return [{"name": s.name, "category": s.category, "ext": s.ext, "id": s.id} for s in associated_sounds]

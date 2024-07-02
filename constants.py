@@ -1,0 +1,5 @@
+sfx_dir = "./db/data/sfx"
+timestamps_out = "./out/timestamps.json"
+mappings_out = "./out/mappings.json"
+recordings_dir = "./media"
+classifications_out = "./db/data/classifications.json"

@@ -1,7 +1,8 @@
 from typing import Optional, TypedDict, List
 import json
-from termcolor import colored
 import google.generativeai as genai
+from constants import timestamps_out
+from lib.utils import info, success
 
 # dictionary format for timestamps
 class TimestampSchema(TypedDict):
@@ -16,15 +17,15 @@ Your job is to receive an audio book sample then find spots where ambient sound 
 """
 
 # generate timestamps for given audio following timestamp_schema
-def generate(audio_url: str, output_path: Optional[str] = None) -> List[TimestampSchema]:
+def generate(audio_url: str, output_path: Optional[str] = timestamps_out) -> List[TimestampSchema]:
     # initialize model with system instructions and json response
     model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
                                   system_instruction=instructions, 
                                   generation_config={"response_mime_type": "application/json"})
     
-    print(colored(f"Uploading audio file from '{audio_url}'...", 'grey'))
+    info(f"Uploading audio file from '{audio_url}'...")
     uploaded_file = genai.upload_file(audio_url) # upload file to google servers
-    print(colored("Successfully uploaded audio file", "green"))
+    success("Successfully uploaded audio file")
 
     aud = genai.get_file(name=uploaded_file.name) # get uploaded file from google servers
     response = model.generate_content([aud]) # generate timestamps and keywords in JSON format

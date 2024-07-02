@@ -4,8 +4,9 @@ from typing import TypedDict, List
 db = SqliteDatabase('sfx.db')
 
 class SoundSchema(TypedDict):
-    description: str
-    gid: str
+    name: str
+    category: str
+    ext: str
 
 class SoundSchemaWithId(SoundSchema, TypedDict):
     id: int
@@ -35,8 +36,10 @@ class Keyword(BaseModel):
 # sound effect model 
 class Sound(BaseModel):
     id = AutoField()
-    description = CharField() # simple description of sound
-    gid = CharField() # store google drive id to retrieve sound
+    name = CharField() # name of sound file
+    ext = CharField() # store file extension
+    category = CharField() # category of sound
+
 
     class Meta:
         table_name = 'sounds'

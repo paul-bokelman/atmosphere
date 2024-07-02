@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 
 out/*
+media/*
 .env
 .vscode
 *.db
+.DS_Store
+db/data/sfx/*
+db/data/*.json
+media/*

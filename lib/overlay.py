@@ -1,10 +1,9 @@
 from typing import Optional, List, Any
 import requests
 from io import BytesIO
-from termcolor import colored
 from pydub import AudioSegment
 from lib.mappings import MappedTimestampSchema
-from lib.utils import g_link, timestamp_to_ms
+from lib.utils import g_link, timestamp_to_ms, info
 
 # overlay sound effects from mappings on an audio file
 def do(audio_path: str, mappings: List[MappedTimestampSchema], out: Optional[str] = None) -> AudioSegment:
@@ -22,7 +21,7 @@ def do(audio_path: str, mappings: List[MappedTimestampSchema], out: Optional[str
     
     # export recording to path if specified
     if out is not None:
-        print(colored(f"Exporting immersive audio to {out}...", "grey"))
+        info(f"Exporting immersive audio to {out}...")
         recording.export(out, format="mp3")
 
     return recording
