@@ -50,7 +50,7 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
 
         accuracy_color = 'green' if accuracy >= 80 else 'yellow' if accuracy >= 60 else 'red'
         
-        print(f"Selected '{selected_sound['description']}' for keywords {timestamp['keywords']} with {colored(f'{accuracy}%', accuracy_color)} confidence")
+        print(f"Selected '{selected_sound['name']}' for keywords {timestamp['keywords']} with {colored(f'{accuracy}%', accuracy_color)} confidence")
 
         # add mapped timestamp to list
         mapped_timestamps.append({ "interval": timestamp['interval'], "keywords": timestamp['keywords'], "sound": selected_sound })

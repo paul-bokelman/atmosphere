@@ -1,11 +1,7 @@
-from typing import List
+from typing import Optional, List
 import inquirer
 from termcolor import _types, colored
 from constants import sfx_dir
-
-# get google drive download link
-def g_link(gid: str) -> str:
-    return f"https://drive.google.com/uc?export=download&id={gid}"
 
 # internal function to convert interval to milliseconds
 def _interval_to_ms(interval: str) -> int:
@@ -17,7 +13,7 @@ def timestamp_to_ms(interval: str) -> List[int]:
     start, end = interval.split('-')
     return [_interval_to_ms(start), _interval_to_ms(end)]
 
-def sfx_path(category: str, name: str, ext: str) -> str:
+def sfx_path(category: str, name: str, ext: str, id: Optional[int] = None) -> str:
     return f"{sfx_dir}/{category}/{name}.{ext}"
 
 # prompt user for confirmation 
