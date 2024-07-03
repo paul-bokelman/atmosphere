@@ -6,20 +6,35 @@ from lib.utils import info, success
 
 # dictionary format for timestamps
 class TimestampSchema(TypedDict):
-    interval: str
+    time: str
     keywords: List[str]
+    type: str
 
-timestamp_schema = '[{"interval": "<start>-<end>, "keywords": str[]}...]' # response schema
+# timestamp_schema = '[{"interval": "<start>-<end>, "keywords": str[]}...]' # response schema
+timestamp_schema = '[{"time": "mm:ss", "keywords": str[]..., "type": "action" | "environment"}]' # response schema
 
-# system instructions passed into model
+# system instructions for the model
 instructions = f"""
-Your job is to receive an audio book sample then find spots where ambient sound effects could be added. For each spot, return it's timestamp interval and a few keywords to describe the desired ambient sound effect. Your response should follow this schema: {timestamp_schema} and should be relatively sparse (2-8 for 8 min audio). In addition, list of keywords should be relatively unique and not too similar to each other with a length of 3-5 words.
+Listen to the provided audiobook recording and identify segments where the addition of ambient sound effects would enhance the depiction of the setting or environment. Specifically, focus on:
+- Descriptions of settings or environments (e.g., a forest, city streets, a rainy day).
+- Interactions with the environment (e.g., opening a door, walking on gravel, rustling leaves).
+
+Provide the results in the following JSON format: {timestamp_schema}
+Where:
+- time is the timestamp of the segment in the format mm:ss
+- <keyword1>, <keyword2>, etc., are keywords describing the context of the segment and the suggested ambient sound effects.
+- type is the type of segment (action or environment)
+
+Requirements:
+- Chosen segments should be relatively spaced out and not too close together (at least 30 seconds apart). If there are no suitable segments, please provide a message indicating that no segments were found.
+
+Ensure that the identified segments are relevant and the added sound effects will complement and not distract from the narration.
 """
 
 # generate timestamps for given audio following timestamp_schema
 def generate(audio_url: str, output_path: Optional[str] = timestamps_out) -> List[TimestampSchema]:
     # initialize model with system instructions and json response
-    model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
+    model = genai.GenerativeModel(model_name='gemini-1.5-pro', 
                                   system_instruction=instructions, 
                                   generation_config={"response_mime_type": "application/json"})
     

@@ -53,7 +53,7 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
         print(f"Selected '{selected_sound['name']}' for keywords {timestamp['keywords']} with {colored(f'{accuracy}%', accuracy_color)} confidence")
 
         # add mapped timestamp to list
-        mapped_timestamps.append({ "interval": timestamp['interval'], "keywords": timestamp['keywords'], "sound": selected_sound })
+        mapped_timestamps.append({ "time": timestamp['time'], "keywords": timestamp['keywords'], "type": timestamp['type'], "sound": selected_sound })
 
     # write mapped timestamps to file if specified
     if out is not None:

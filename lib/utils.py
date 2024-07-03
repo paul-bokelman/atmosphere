@@ -3,15 +3,19 @@ import inquirer
 from termcolor import _types, colored
 from constants import sfx_dir
 
-# internal function to convert interval to milliseconds
-def _interval_to_ms(interval: str) -> int:
+# seconds to milliseconds
+def ms(seconds: int) -> int:
+    return seconds * 1000
+
+# function to convert interval to milliseconds
+def time_to_ms(interval: str) -> int:
     minutes, seconds = interval.split(':')
     return (int(minutes) * 60 + int(seconds)) * 1000
 
 # convert timestamp (<start>-<end>) to milliseconds
-def timestamp_to_ms(interval: str) -> List[int]:
+def interval_to_ms(interval: str) -> List[int]:
     start, end = interval.split('-')
-    return [_interval_to_ms(start), _interval_to_ms(end)]
+    return [time_to_ms(start), time_to_ms(end)]
 
 def sfx_path(category: str, name: str, ext: str, id: Optional[int] = None) -> str:
     return f"{sfx_dir}/{category}/{name}.{ext}"
