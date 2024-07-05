@@ -2,10 +2,13 @@ from typing import List
 import os
 import json
 import inquirer
+import google.generativeai as genai
+import time
 from constants import sfx_dir, classifications_out
 from db.models import db, Keyword, Sound, SoundKeyword, SoundSchema
 from db.queries import get_or_insert_keyword, insert_sound, insert_relationships
 from lib.utils import confirmation, info, success, error
+
 
 # should be moved...
 class ClassificationSchema(SoundSchema):
@@ -50,36 +53,24 @@ def classify():
             relations = [] # reset classifications
             info("Classifications reset")
 
-    # no saved classifications or reset -> initialize new classifications
-    if len(relations) == 0:
-        new_classifications_file = open(classifications_out, "w")
-        new_classifications_file.write("[]")
-        new_classifications_file.close()
+    if len(relations) == 0 or (not os.path.exists(classifications_out)): 
+        model = genai.GenerativeModel(model_name='gemini-1.5-flash')
 
-    info("Loaded classifications")
-    info(f"Please classify the remaining {total_sounds - len(relations)} sounds, exit at anytime with ctrl+c")
+        if not os.path.exists(classifications_out):
+            new_classifications_file = open(classifications_out, "w")
+            new_classifications_file.write("[]")
+            new_classifications_file.close()
 
-    # filter out already classified sounds
-    sounds = [sound for sound in sounds if not any(sound['name'] == relation['name'] for relation in relations)]
+        
+        for s in sounds:
+            info(f"Sound {len(relations) + 1}/{total_sounds} - {s['category']}/{s['name']} being described by Gemini...", "cyan") # print sound info
+            aud_name = s['name']
+            response = model.generate_content(f"""Describe in two sentences an audio recording of {aud_name}.""")
+            relations.append({**s, 'keywords': [response.text]}) # add sound and keywords to relations
+            time.sleep(5)
 
-    # prompt user for each sound effect's keywords
-    for sound in sounds:
-        info(f"Sound {len(relations) + 1}/{total_sounds} - {sound['category']}/{sound['name']}", "cyan") # print sound info
-
-        # prompt user for keywords
-        questions = [inquirer.Text('keywords', message="Enter keywords (comma separated)")]
-        answers = inquirer.prompt(questions)
-
-        # no answers -> return
-        if answers is None:
-            return info("Returning to menu...")
-
-        keywords = answers['keywords'].split(',') # split keywords by comma
-        relations.append({**sound, 'keywords': [sound['category'], sound['name'].replace("-", " "), *keywords]}) # add sound and keywords to relations
-
-        # save classifications
         with open(classifications_out, "w") as classifications_file:
-            classifications_file.write(json.dumps(relations, indent=4))
+                classifications_file.write(json.dumps(relations, indent=4))
 
     success("\nSuccessfully classified all sounds 💪")
 

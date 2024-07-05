@@ -31,7 +31,7 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
     # timestamp -> find suitable sound -> add to mapped_timestamps
     for timestamp in timestamps:
         content = json.dumps({"input": timestamp['keywords'],"sounds": sounds}) # json content for model
-
+        #print(content)
         response = json.loads(model.generate_content(content).text) # get sound id from model response
         sound_id = int(response['id'])
         accuracy = response['confidence']
