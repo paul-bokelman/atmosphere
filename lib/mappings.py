@@ -5,7 +5,7 @@ import google.generativeai as genai
 from constants import mappings_out
 from lib.timestamps import TimestampSchema
 from db.models import SoundSchemaWithId
-from db.queries import get_sounds, get_sound
+from db.queries import get_sound, get_associated_sounds
 
 # adjusted schema for the addition of sound
 class MappedTimestampSchema(TimestampSchema):
@@ -15,13 +15,12 @@ mappings_schema = '{"id": <sound_id>, "", "confidence": <accuracy percentage num
 
 # system instructions passed into model
 instructions = f"""
-You will be given a list of keywords and your job is to compare them with pairs of descriptions and keywords to determine the best sound to choose for the given keywords. Your response should return the id of the selected sound or -1 if there was no reasonably close match. Additionally, each response should include an 'accuracy percentage' which is a measure of how well you think the audio describes the keywords. Lastly, the response should be in the following format: {mappings_schema}.
+Given a description of a segment of audio and a list of 'sound' options to choose from, choose the best sound to match the description. Your response should return the id of the selected sound or -1 if there was no reasonably close match. Additionally, each response should include an 'accuracy percentage' which is a measure of how well you think the audio describes the keywords. Lastly, the response should be in the following format: {mappings_schema}. 
 """
 
-# ingest timestamps and properly map to sounds
+# generate mapped timestamps
 def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_out) -> List[MappedTimestampSchema]:
     mapped_timestamps: List[MappedTimestampSchema] = [] # newly mapped timestamps
-    sounds = get_sounds()
 
     # initialize model with system instructions and json response
     model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
@@ -30,15 +29,15 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
 
     # timestamp -> find suitable sound -> add to mapped_timestamps
     for timestamp in timestamps:
-        content = json.dumps({"input": timestamp['keywords'],"sounds": sounds}) # json content for model
-        #print(content)
-        response = json.loads(model.generate_content(content).text) # get sound id from model response
+        associated_sounds = get_associated_sounds([timestamp['category']])
+        options = json.dumps({"description": timestamp['description'], "sounds": associated_sounds}) # json content for model
+        response = json.loads(model.generate_content(options).text) # get sound id from model response
         sound_id = int(response['id'])
         accuracy = response['confidence']
 
         # no similar sound found -> notify and skip
         if sound_id == -1:
-            print(f"{colored('MISSING', 'red')} - No suitable sound found for keywords: {timestamp['keywords']}")
+            print(f"{colored('MISSING', 'red')} - No suitable sound found for: {timestamp['description']}")
             continue
         
         selected_sound = get_sound(sound_id) # get sound from database
@@ -50,10 +49,10 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
 
         accuracy_color = 'green' if accuracy >= 80 else 'yellow' if accuracy >= 60 else 'red'
         
-        print(f"Selected '{selected_sound['name']}' for keywords {timestamp['keywords']} with {colored(f'{accuracy}%', accuracy_color)} confidence")
+        print(f"Selected '{selected_sound['name']}' for '{timestamp['description']}' with {colored(f'{accuracy}%', accuracy_color)} confidence")
 
         # add mapped timestamp to list
-        mapped_timestamps.append({ "time": timestamp['time'], "keywords": timestamp['keywords'], "type": timestamp['type'], "sound": selected_sound })
+        mapped_timestamps.append({ "time": timestamp['time'], "description": timestamp['description'], 'category': timestamp['category'], "type": timestamp['type'], "sound": selected_sound })
 
     # write mapped timestamps to file if specified
     if out is not None:

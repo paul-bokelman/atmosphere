@@ -110,5 +110,6 @@ def seed():
         
         sound_id = insert_sound({'name': cf['name'],'category': cf['category'], "ext": cf['ext']}) # add sound to db
         insert_relationships(sound_id, keyword_ids) # create relationship between sound and keywords
-
+        
+    db.close()
     success("Successfully seeded database 🌴")
