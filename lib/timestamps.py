@@ -32,18 +32,17 @@ Ensure that the identified segments are relevant and the added sound effects wil
 """
 
 # generate timestamps for given audio following timestamp_schema
-def generate(audio_url: str, output_path: Optional[str] = timestamps_out) -> List[TimestampSchema]:
+def generate(recording_path: str, output_path: Optional[str] = timestamps_out) -> List[TimestampSchema]:
     # initialize model with system instructions and json response
     model = genai.GenerativeModel(model_name='gemini-1.5-pro', 
                                   system_instruction=instructions, 
                                   generation_config={"response_mime_type": "application/json"})
     
-    info(f"Uploading audio file from '{audio_url}'...")
-    uploaded_file = genai.upload_file(audio_url) # upload file to google servers
+    info(f"Uploading audio file from '{recording_path}'...")
+    file = genai.upload_file(recording_path) # upload file to google servers
     success("Successfully uploaded audio file")
 
-    aud = genai.get_file(name=uploaded_file.name) # get uploaded file from google servers
-    response = model.generate_content([aud]) # generate timestamps and keywords in JSON format
+    response = model.generate_content(file) # generate timestamps and keywords in JSON format
 
     # output response to json file
     if output_path is not None:

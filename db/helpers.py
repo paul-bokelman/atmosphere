@@ -1,18 +1,21 @@
 from typing import List
 import os
 import json
-import inquirer
 import google.generativeai as genai
 import time
 from constants import sfx_dir, classifications_out
 from db.models import db, Keyword, Sound, SoundKeyword, SoundSchema
 from db.queries import get_or_insert_keyword, insert_sound, insert_relationships
-from lib.utils import confirmation, info, success, error
+from lib.utils import confirmation, info, success, error, sfx_path
 
-
-# should be moved...
 class ClassificationSchema(SoundSchema):
     keywords: List[str]
+    description: str
+
+classification_schema = '{"description": str}'
+classification_instructions = f"""
+Listen to the provided sound effect and describe the what the sound represents in 1-2 sentences. Your response should follow the format: {classification_schema}
+"""
 
 # assign keywords to each raw sound (continue from saved classifications)
 def classify():
@@ -53,21 +56,23 @@ def classify():
             relations = [] # reset classifications
             info("Classifications reset")
 
-    if len(relations) == 0 or (not os.path.exists(classifications_out)): 
-        model = genai.GenerativeModel(model_name='gemini-1.5-flash')
+    if len(relations) == 0 or (not os.path.exists(classifications_out)):
+        model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
+                                      system_instruction=classification_instructions, 
+                                      generation_config={"response_mime_type": "application/json"})
 
         if not os.path.exists(classifications_out):
             new_classifications_file = open(classifications_out, "w")
             new_classifications_file.write("[]")
             new_classifications_file.close()
 
-        
-        for s in sounds:
-            info(f"Sound {len(relations) + 1}/{total_sounds} - {s['category']}/{s['name']} being described by Gemini...", "cyan") # print sound info
-            aud_name = s['name']
-            response = model.generate_content(f"""Describe in two sentences an audio recording of {aud_name}.""")
-            relations.append({**s, 'keywords': [response.text]}) # add sound and keywords to relations
-            time.sleep(5)
+        for sound in sounds:
+            info(f"({len(relations) + 1}/{total_sounds}) {sound['category']}/{sound['name']} being described by Gemini...", "cyan") # print sound info
+            file = genai.upload_file(sfx_path(**sound)) # upload file to google servers for classification
+            response = json.loads(model.generate_content([sound['category'] + " " + sound['name'], file]).text) # generate description
+            relations.append({**sound, "description": response['description'], 'keywords': [sound['category']]})
+            time.sleep(2) # sleep for x seconds to avoid rate limiting
+            #? should append to file after each sound is classified to avoid losing progress in case of error
 
         with open(classifications_out, "w") as classifications_file:
                 classifications_file.write(json.dumps(relations, indent=4))

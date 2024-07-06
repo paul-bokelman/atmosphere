@@ -40,7 +40,6 @@ class Sound(BaseModel):
     ext = CharField() # store file extension
     category = CharField() # category of sound
 
-
     class Meta:
         table_name = 'sounds'
 
