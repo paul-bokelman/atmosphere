@@ -1,7 +1,10 @@
-from typing import Optional, List
+from typing import Optional, List, Any
+import requests
 import inquirer
+from io import BytesIO
 from termcolor import _types, colored
-from constants import sfx_dir
+from pydub import AudioSegment
+from constants import sfx_dir, bbc_sfx_url, bbc_sfx_media_url
 
 # seconds to milliseconds
 def ms(seconds: int) -> int:
@@ -16,9 +19,6 @@ def time_to_ms(interval: str) -> int:
 def interval_to_ms(interval: str) -> List[int]:
     start, end = interval.split('-')
     return [time_to_ms(start), time_to_ms(end)]
-
-def sfx_path(category: str, name: str, ext: str, id: Optional[int] = None) -> str:
-    return f"{sfx_dir}/{category}/{name}.{ext}"
 
 # prompt user for confirmation 
 def confirmation(message: str, ) -> bool:
@@ -41,3 +41,23 @@ def success(message: str):
 # error message
 def error(message: str):
     print(colored(message, "red"))
+
+# get sound effect candidates
+def sfx_candidates(category: str, keywords: List[str]) -> str:
+    formatted_candidates = "" # formatted candidates for model
+    r = requests.post(bbc_sfx_url, json={
+        "criteria":{"from":0,"size":500,"tags":keywords,"categories":[category],"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
+    })
+
+    for s in r.json()['results']:
+        formatted_candidates += f"{s['description']} ({s['id']})\n"
+
+    return formatted_candidates
+
+# download sound effects given id
+def candidate_sfx_file(id: str) -> AudioSegment:
+    url = f"{bbc_sfx_media_url}/{id}.mp3"
+    response = requests.get(url)
+    bytes: Any = BytesIO(response.content)
+    audio = AudioSegment.from_file(bytes)
+    return audio

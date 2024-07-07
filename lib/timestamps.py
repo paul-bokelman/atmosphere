@@ -1,49 +1,48 @@
-from typing import Optional, TypedDict, List
+from typing import TypedDict, List
 import json
+import os
 import google.generativeai as genai
 from constants import timestamps_out
 from lib.utils import info, success
+import constants
 
-# dictionary format for timestamps
 class TimestampSchema(TypedDict):
     time: str
+    description: str
+    category: str
     keywords: List[str]
-    type: str
 
-# timestamp_schema = '[{"interval": "<start>-<end>, "keywords": str[]}...]' # response schema
-timestamp_schema = '[{"time": "mm:ss", "keywords": str[]..., "type": "action" | "environment"}]' # response schema
+timestamp_schema = '[{"time": "mm:ss", "description": str, "category": str, "keywords": str[]}]' # response schema
 
 # system instructions for the model
 instructions = f"""
-Listen to the provided audiobook recording and identify segments where the addition of ambient sound effects would enhance the depiction of the setting or environment. Specifically, focus on:
-- Descriptions of settings or environments (e.g., a forest, city streets, a rainy day).
-- Interactions with the environment (e.g., opening a door, walking on gravel, rustling leaves).
-
-Provide the results in the following JSON format: {timestamp_schema}
+Given an audio file, identify timestamps where the setting or environment is described. Your response should follow the schema: {timestamp_schema}
 Where:
-- time is the timestamp of the segment in the format mm:ss
-- <keyword1>, <keyword2>, etc., are keywords describing the context of the segment and the suggested ambient sound effects.
-- type is the type of segment (action or environment)
+- time: the timestamp in the format mm:ss
+- description: a brief description of the setting or environment
+- category: the category that best describes the setting or environment from the given list
+- keywords: a list of keywords that describe the setting or environment
 
-Requirements:
-- Chosen segments should be relatively spaced out and not too close together (at least 30 seconds apart). If there are no suitable segments, please provide a message indicating that no segments were found.
-
-Ensure that the identified segments are relevant and the added sound effects will complement and not distract from the narration.
+Additionally, provide a general sequence of events that occur in the audio file.
 """
 
 # generate timestamps for given audio following timestamp_schema
-def generate(audio_url: str, output_path: Optional[str] = timestamps_out) -> List[TimestampSchema]:
+def generate(recording_path: str, output_path: str = timestamps_out, skip: bool = False) -> List[TimestampSchema]:
+    # if skip and file exists, return file
+    if skip and os.path.exists(output_path):
+        info("Skipping timestamps generation, using existing file...")
+        return json.load(open(output_path, "r"))
+
     # initialize model with system instructions and json response
     model = genai.GenerativeModel(model_name='gemini-1.5-pro', 
                                   system_instruction=instructions, 
                                   generation_config={"response_mime_type": "application/json"})
     
-    info(f"Uploading audio file from '{audio_url}'...")
-    uploaded_file = genai.upload_file(audio_url) # upload file to google servers
+    info(f"Uploading audio file from '{recording_path}'...")
+    file = genai.upload_file(recording_path) # upload file to google servers
     success("Successfully uploaded audio file")
 
-    aud = genai.get_file(name=uploaded_file.name) # get uploaded file from google servers
-    response = model.generate_content([aud]) # generate timestamps and keywords in JSON format
+    response = model.generate_content([file, ', '.join(constants.categories)]) # generate timestamps and keywords in JSON format
 
     # output response to json file
     if output_path is not None:

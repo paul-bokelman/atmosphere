@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import inquirer
 from termcolor import colored
 import google.generativeai as genai
-from commands import atmosphere, helpers
+from commands import atmosphere
 
 load_dotenv() # load in environment variables
 genai.configure(api_key=os.getenv('GEMINI_API_KEY')) # configure gemini with api key
@@ -14,7 +14,6 @@ def exit_command():
 
 commands = {
     "Generate Immersive Audio 💫": atmosphere.generate,
-    "Helpers 🛠": helpers.commands,
     "Exit 🚪": exit_command,
 }
 
