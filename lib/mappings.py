@@ -1,58 +1,50 @@
 from typing import Optional, List
 import json
+import os
 from termcolor import colored
 import google.generativeai as genai
 from constants import mappings_out
 from lib.timestamps import TimestampSchema
-from db.models import SoundSchemaWithId
-from db.queries import get_sound, get_associated_sounds
+from lib.utils import info, sfx_candidates
 
 # adjusted schema for the addition of sound
 class MappedTimestampSchema(TimestampSchema):
-    sound: SoundSchemaWithId
-
-mappings_schema = '{"id": <sound_id>, "", "confidence": <accuracy percentage number>}' # response schema
+    sound_id: str
 
 # system instructions passed into model
 instructions = f"""
-Given a description of a segment of audio and a list of 'sound' options to choose from, choose the best sound to match the description. Your response should return the id of the selected sound or -1 if there was no reasonably close match. Additionally, each response should include an 'accuracy percentage' which is a measure of how well you think the audio describes the keywords. Lastly, the response should be in the following format: {mappings_schema}. 
+Choose the sound effect that best matches the given description. Your response should return the just the id of the selected sound or -1 if there was no reasonably close match.
 """
 
 # generate mapped timestamps
-def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_out) -> List[MappedTimestampSchema]:
+def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_out, skip: bool = False) -> List[MappedTimestampSchema]:
+    # if skip and file exists, return file
+    if skip and out is not None and os.path.exists(out):
+        info("Skipping mappings generation, using existing file...")
+        return json.load(open(out, "r"))
+
     mapped_timestamps: List[MappedTimestampSchema] = [] # newly mapped timestamps
 
     # initialize model with system instructions and json response
     model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
                                   system_instruction=instructions, 
-                                  generation_config={"response_mime_type": "application/json"})
+                                  generation_config={"response_mime_type": "text/plain"})
 
     # timestamp -> find suitable sound -> add to mapped_timestamps
     for timestamp in timestamps:
-        associated_sounds = get_associated_sounds([timestamp['category']])
-        options = json.dumps({"description": timestamp['description'], "sounds": associated_sounds}) # json content for model
-        response = json.loads(model.generate_content(options).text) # get sound id from model response
-        sound_id = int(response['id'])
-        accuracy = response['confidence']
+        candidates = sfx_candidates(category=timestamp['category'], keywords=timestamp['keywords']) # get sound candidates
+        response = model.generate_content([timestamp['description'], candidates]) # get sound id from model response
+        sound_id = response.text.strip() # get sound id from response
 
         # no similar sound found -> notify and skip
-        if sound_id == -1:
-            print(f"{colored('MISSING', 'red')} - No suitable sound found for: {timestamp['description']}")
+        if sound_id == "-1":
+            print(f"{colored('NOTHING FOUND', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
             continue
         
-        selected_sound = get_sound(sound_id) # get sound from database
-
-        # sound not found in database -> notify and skip
-        if selected_sound is None:
-            print(f"Sound with id {sound_id} not found in database")
-            continue
-
-        accuracy_color = 'green' if accuracy >= 80 else 'yellow' if accuracy >= 60 else 'red'
-        
-        print(f"Selected '{selected_sound['name']}' for '{timestamp['description']}' with {colored(f'{accuracy}%', accuracy_color)} confidence")
+        print(f"{colored('FOUND', 'green')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
 
         # add mapped timestamp to list
-        mapped_timestamps.append({ "time": timestamp['time'], "description": timestamp['description'], 'category': timestamp['category'], "type": timestamp['type'], "sound": selected_sound })
+        mapped_timestamps.append({ "time": timestamp['time'], "description": timestamp['description'], 'category': timestamp['category'], 'keywords': timestamp['keywords'], "sound_id": sound_id})
 
     # write mapped timestamps to file if specified
     if out is not None:
