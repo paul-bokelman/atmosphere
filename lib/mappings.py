@@ -32,7 +32,13 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
 
     # timestamp -> find suitable sound -> add to mapped_timestamps
     for timestamp in timestamps:
+        
         candidates = sfx_candidates(category=timestamp['category'], keywords=timestamp['keywords']) # get sound candidates
+        #print(len(candidates))
+        if len(candidates) == 0:
+            candidates = sfx_candidates(category=timestamp['category'], keywords = None)
+            
+       # print(candidates, "\n")
         response = model.generate_content([timestamp['description'], candidates]) # get sound id from model response
         sound_id = response.text.strip() # get sound id from response
 
