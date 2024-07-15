@@ -43,19 +43,19 @@ def error(message: str):
     print(colored(message, "red"))
 
 # get sound effect candidates
-def sfx_candidates(category: str, keywords: List[str]) -> str:
-    formatted_candidates = "" # formatted candidates for model
+def sfx_candidates(category: str, keywords: List[str]):
+    #formatted_candidates = "" # formatted candidates for model
     r = requests.post(bbc_sfx_url, json={
         "criteria":{"from":0,"size":1000,"tags":keywords,"categories":[category],"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
     })
     
-    for s in r.json()['results']:
-        formatted_candidates += f"{s['description']} ({s['id']})\n"
+    """ for s in r.json()['results']:
+        formatted_candidates += f"{s['description']} ({s['id']})\n" """
         
         
 
 
-    return formatted_candidates
+    return r.json()['results']   #formatted_candidates
 
 # download sound effects given id
 def candidate_sfx_file(id: str) -> AudioSegment:
