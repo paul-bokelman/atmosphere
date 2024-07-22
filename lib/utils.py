@@ -48,12 +48,6 @@ def sfx_candidates(category: str, keywords: List[str]):
     r = requests.post(bbc_sfx_url, json={
         "criteria":{"from":0,"size":1000,"tags":keywords,"categories":[category],"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
     })
-    
-    """ for s in r.json()['results']:
-        formatted_candidates += f"{s['description']} ({s['id']})\n" """
-        
-        
-
 
     return r.json()['results']   #formatted_candidates
 

@@ -23,7 +23,6 @@ Where:
 - category: the category that best describes the setting or environment from the given list
 - keywords: a list of keywords that describe the setting or environment
 
-Additionally, provide a general sequence of events that occur in the audio file.
 """
 
 # generate timestamps for given audio following timestamp_schema
@@ -43,12 +42,12 @@ def generate(recording_path: str, output_path: str = timestamps_out, skip: bool 
     success("Successfully uploaded audio file")
 
     response = model.generate_content([file, ', '.join(constants.categories)]) # generate timestamps and keywords in JSON format
-
+    response_json = json.loads(response.text)
+    
     # output response to json file
     if output_path is not None:
-        f = open(output_path, "w")
-        f.write(response.text)
-        f.close()
+        with open(output_path, 'w') as file:
+            json.dump(response_json, file, indent=4)
 
     # convert output to python dictionary
     return json.loads(response.text)

@@ -14,7 +14,7 @@ class MappedTimestampSchema(TimestampSchema):
 
 # system instructions passed into model
 instructions = f"""
-Choose the sound effect that best matches the given description. Your response should return the just the id of the selected sound or -1 if there was no reasonably close match.
+Choose the sound effect that best matches the given description. Your response should return the just the ID of the selected sound or -1 if there was no reasonably close match. Do not ignore leading zeroes in the ID! The sound options are of the form [description (ID)], return the entire id or -1 if no match is found!
 """
 
 instructions_check = f"""
@@ -35,7 +35,7 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
                                   system_instruction=instructions, 
                                   generation_config={"response_mime_type": "text/plain"})
     
-    model2 = genai.GenerativeModel(model_name='gemini-1.5-pro', 
+    model2 = genai.GenerativeModel(model_name='gemini-1.5-flash', 
                                   system_instruction=instructions_check,
                                   generation_config={"response_mime_type": "text/plain"})
 
@@ -48,40 +48,48 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
             candidates_dict = sfx_candidates(category=timestamp['category'], keywords = None)
 
 
-        for i in range(10):
+        for i in range(5):
             candidates = ""
             for s in candidates_dict:
                 candidates += f"{s['description']} ({s['id']})\n"
             #print(candidates)
 
             response = model.generate_content([timestamp['description'], candidates]) # get sound id from model response
+            time.sleep(3)
             sound_id = response.text.strip() # get sound id from response
 
             # no similar sound found -> notify and skip
             if sound_id == "-1":
+                #print("sound id: ", -1)
+                #print(candidates)
                 print(f"{colored('NOTHING FOUND', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
                 break
             else:
-                #upload choice by id to gemini and ask for confimation
+                #upload choice by id to gemini and ask for confirmation
+                
+                #print("sound id: ", sound_id)
+                #print("response: ", response.text)
+                #print(candidates)
                 audio = candidate_sfx_file(sound_id)
                 audio.export("out/candidate.mp3")
                 file = genai.upload_file("out/candidate.mp3")
 
                 response = model2.generate_content([file, ', ', timestamp['description']]) 
+                time.sleep(3)
                 
 
                 if response.text.strip() == "1":
                     print(f"{colored('FOUND', 'green')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}.")
+                    mapped_timestamps.append({ "time": timestamp['time'], "description": timestamp['description'], 'category': timestamp['category'], 'keywords': timestamp['keywords'], "sound_id": sound_id})
                     break
                 else: #remove tested candidate from candidates
-                    candidates_dict = [d for d in candidates_dict if d['id'] != sound_id]
+                    if i == 4:
+                        print(f"{colored('NOTHING FOUND', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
+                        break
+                    else:
+                        candidates_dict = [d for d in candidates_dict if d['id'] != sound_id]
                     
-
         
-
-        # add mapped timestamp to list
-        mapped_timestamps.append({ "time": timestamp['time'], "description": timestamp['description'], 'category': timestamp['category'], 'keywords': timestamp['keywords'], "sound_id": sound_id})
-        time.sleep(5)
 
     # write mapped timestamps to file if specified
     if out is not None:
