@@ -1,4 +1,4 @@
-![image](https://github.com/paul-bokelman/atmosphere/assets/72945168/e7bbd3b9-6856-4ebe-8091-db2260310b33)
+![gh-banner](https://github.com/user-attachments/assets/093a37cf-c353-4ec2-96e8-7228ed6e7d1e)
 
 # Atmosphere - Immersive Audio Books
 
