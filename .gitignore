@@ -9,5 +9,4 @@ media/*
 *.db
 .DS_Store
 db/data/sfx/*
-db/data/*.json
 media/*

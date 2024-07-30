@@ -1,10 +1,6 @@
 from lib import timestamps as ts, mappings as map, overlay
 from lib.utils import info, success
 
-# initialize atmosphere
-def initialize() -> None:
-  pass
-
 # generate immersive audio from input audio
 def generate() -> None:
   info("Generating immersive audio, this may take a while 🌟...")
