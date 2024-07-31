@@ -30,6 +30,8 @@ A gallery of Atmosphere's work can be accessed through a showcase web app locate
 
 # Inspiration and Possibilities
 
+Ultimately, a product like Atmosphere could be added onto audio book streaming services such as Google Play and Audible to offer customers an immersive option alongside standard audio books.
+
 
 
 
