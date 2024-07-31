@@ -4,6 +4,9 @@
 
 Built for [Gemini API Developer Competition](https://ai.google.dev/competition)
 
+
+
+
 # About Atmosphere
 
 Atmosphere aims to enhance the storytelling experience by overlaying ambient audio onto audio book segments with strong auditory and sensory scenes. Atmosphere interacts with Gemini in 3 independent stages.
