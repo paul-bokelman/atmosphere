@@ -26,12 +26,17 @@ A gallery of Atmosphere's work can be accessed through a showcase web app locate
 5. Enter the command "python3 main.py". This will beginning running the generator.
 6. Once running, select "Generate Immersive Audio" in the drop down menu, and press enter.
 7. Once the generator is finished running, you can select to rerun the generator by selecting "Generate Immersive Audio" once again, or exit the program by selecting "Exit".
-8. The Output mp3 file will be found in the out directory.
+8. The output mp3 file will be found in the out directory.
 
 # Inspiration and Possibilities
 
 
 
+
 # Reflection and Shortcomings
+
+Atmosphere excels at locating and assigning sounds for scenes that are general and require little to no contextualization or background information to properly classify. Examples of such scenes might be that of a river flowing in the distance, the hustle and bustle of a factory, or birds chirping. Scenes such as these can be simply taken at face value and directly interpreted without strict examination of tone, setting, and figurative language.
+
+  Admittedly, Atmosphere predictably struggles to convey adequate sensory enhancement in scenes that can not be snipped out of their place within the context of the story as a whole. Often Atmosphere takes scenes too literally and fails to understand the nuance of metaphors and may lose sight of the original scene. Similarly, Atmosphere has a tendency to place sound effects from far-removed and unfitting time frames into scenes; a habit that can be disorienting and distracting to listeners. Atmosphere regularly fails to recognize the nuanced differences between a busy medieval marketplace, and Times Square in the early 21st century. Again, this inadequacy is rooted in a lack of context for Gemini to draw from.
 
 
