@@ -9,7 +9,29 @@ Built for [Gemini API Developer Competition](https://ai.google.dev/competition)
 
 # About Atmosphere
 
-Atmosphere aims to enhance the storytelling experience by overlaying ambient audio onto audio book segments with strong auditory and sensory scenes. Atmosphere interacts with Gemini in 3 independent stages.
+Atmosphere aims to enhance the storytelling experience by overlaying ambient audio onto audio book segments with strong auditory and sensory scenes. Atmosphere interacts with Gemini in three independent stages.
 1. Initially, Atmosphere is provided with the audio book in its entirety, and is tasked with locating timestamps within the audio book that correspond to scenes that would be enhanced by ambient audio. In addition to providing the timestamp of these scenes, Gemini also produces a concise description of the context of the scene, and salient keywords from the scene that construct the overall tone of the segment.
 2. Using the keywords gathered for each scene identified by Gemini, Atmosphere sifts through the 33,000+ sound effects and their associated keywords in the BBC sound effects library, and acquires all sounds with at least one keyword matching that of the scene. With all sound effects a minimum of one matching keyword compiled into a list, Gemini is prompted to pick the sound from the list that best matches the scene description created by Gemini in step 1.
-3. Once Gemini has made a choice for the best fitting sound amongst the candidates, Gemini is given the mp3 file for the sound effect, and is prompted to listen and determine if its own choice really matches the scene at hand. If so, the next scene is evaluated, otherwise Gemini picks a new sound and is prompted to confirm again. 
+3. Once Gemini has made a choice for the best fitting sound amongst the candidates, Gemini is given the mp3 file for the sound effect, and is prompted to listen and determine if its own choice really matches the scene at hand. If so, the next scene is evaluated, otherwise Gemini picks a new sound and is prompted to confirm again.
+
+A gallery of Atmosphere's work can be accessed through a showcase web app located at https://github.com/paul-bokelman/atmosphere-showcase .
+
+
+# Using Atmosphere Locally
+
+1. On the main page of the repo, click the green "Code" button. Copy either the SSH or HTTPS link.
+2. In your local terminal, navigate to a folder that you would like to place Atmosphere into.
+3. Once in such a folder, type the command "git clone PLACEHOLDER" where PLACEHOLDER is the SSH or HTTPS link.
+4. Enter the Atmosphere folder that is now in your local directory. By default, Atmosphere will generate an immersive version of "The Wizard of Oz". However, to change the input audio book, navigate to the "media" folder, and replace the mp3 file with an audio book of your choice in mp3 format.
+5. Enter the command "python3 main.py". This will beginning running the generator.
+6. Once running, select "Generate Immersive Audio" in the drop down menu, and press enter.
+7. Once the generator is finished running, you can select to rerun the generator by selecting "Generate Immersive Audio" once again, or exit the program by selecting "Exit".
+8. The Output mp3 file will be found in the out directory.
+
+# Inspiration and Possibilities
+
+
+
+# Reflection and Shortcomings
+
+
