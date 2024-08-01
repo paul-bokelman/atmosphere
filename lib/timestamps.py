@@ -1,16 +1,11 @@
-from typing import TypedDict, List
+from typing import Optional, List
+from lib.types import TimestampSchema
 import json
 import os
+import urllib.request
 import google.generativeai as genai
-from constants import timestamps_out
-from lib.utils import info, success
 import constants
-
-class TimestampSchema(TypedDict):
-    time: str
-    description: str
-    category: str
-    keywords: List[str]
+from lib.utils import info, success, is_url
 
 timestamp_schema = '[{"time": "mm:ss", "description": str, "category": str, "keywords": str[]}]' # response schema
 
@@ -25,28 +20,29 @@ Where:
 
 """
 
-# generate timestamps for given audio following timestamp_schema
-def generate(recording_path: str, output_path: str = timestamps_out, skip: bool = False) -> List[TimestampSchema]:
+def generate(recording: str, out: Optional[str] = None, skip: bool = False) -> List[TimestampSchema]:
+    """Generate timestamps from input recording"""
     # if skip and file exists, return file
-    if skip and os.path.exists(output_path):
+    if skip and out is not None and os.path.exists(out):
         info("Skipping timestamps generation, using existing file...")
-        return json.load(open(output_path, "r"))
+        return json.load(open(out, "r"))
 
     # initialize model with system instructions and json response
-    model = genai.GenerativeModel(model_name='gemini-1.5-pro', 
-                                  system_instruction=instructions, 
-                                  generation_config={"response_mime_type": "application/json"})
+    model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
+                                system_instruction=instructions, 
+                                generation_config={"response_mime_type": "application/json"})
     
-    info(f"Uploading audio file from '{recording_path}'...")
-    file = genai.upload_file(recording_path) # upload file to google servers
+    info(f"Uploading audio file from '{recording}'...")
+    # upload file to google servers whether it's a url or local file
+    file = genai.upload_file(urllib.request.urlretrieve(recording)[0], mime_type='audio/mpeg') if is_url(recording) else genai.upload_file(recording) 
     success("Successfully uploaded audio file")
 
-    response = model.generate_content([file, ', '.join(constants.categories)]) # generate timestamps and keywords in JSON format
+    response = model.generate_content([file, ', '.join(constants.categories)]) # generate timestamps
     response_json = json.loads(response.text)
     
     # output response to json file
-    if output_path is not None:
-        with open(output_path, 'w') as file:
+    if out is not None:
+        with open(out, 'w') as file:
             json.dump(response_json, file, indent=4)
 
     # convert output to python dictionary

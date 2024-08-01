@@ -2,11 +2,11 @@ env/
 __pycache__/
 *.pyc
 
-out/*
-media/*
-.env
+.env.*
 .vscode
 *.db
 .DS_Store
 db/data/sfx/*
-media/*
+media/recordings/*
+media/out/*
+out/*
