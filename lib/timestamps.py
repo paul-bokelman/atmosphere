@@ -34,7 +34,8 @@ def generate(recording: str, out: Optional[str] = None, skip: bool = False) -> L
     
     info(f"Uploading audio file from '{recording}'...")
     # upload file to google servers whether it's a url or local file
-    file = genai.upload_file(urllib.request.urlretrieve(recording)[0], mime_type='audio/mpeg') if is_url(recording) else genai.upload_file(recording) 
+    file_path = urllib.request.urlretrieve(recording)[0] if is_url(recording) else recording
+    file = genai.upload_file(file_path, mime_type='audio/mpeg')
     success("Successfully uploaded audio file")
 
     response = model.generate_content([file, ', '.join(constants.categories)]) # generate timestamps

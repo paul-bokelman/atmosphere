@@ -59,6 +59,10 @@ def error(message: str):
     """Print error message"""
     print(colored(message, "red"))
 
+def warn(message: str):
+    """Print warning message"""
+    print(colored(message, "yellow"))
+
 def sfx_candidates(category: str, keywords: List[str]):
     """Get sound effects candidates from BBC SFX API"""
     r = requests.post(constants.bbc_sfx_url, json={

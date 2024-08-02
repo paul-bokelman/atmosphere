@@ -1,13 +1,14 @@
+from typing import List
 from lib.types import BookSchema, ChapterSchema, SeedDataSchema, AmbientSectionSchema, MappedTimestampSchema
 import os
 import re
 import json
 import requests
-import google.generativeai as genai
+import inquirer
 from bs4 import BeautifulSoup, Tag
 import constants
 from commands import general
-from lib.utils import info, success, error, time_to_ms, ms_to_s, upload_to_s3, confirmation
+from lib.utils import info, success, error, warn, time_to_ms, ms_to_s, upload_to_s3, confirmation
 
 def _scrape_book(url: str) -> BookSchema:
     """Given a URL, scrape the website for book data and return a BookSchema object"""
@@ -65,7 +66,7 @@ def _scrape_book(url: str) -> BookSchema:
     assert chapters_container is not None, "Chapters container not found"
     assert isinstance(chapters_container, Tag), "Chapters container is not a Tag"
 
-    chapter_urls: list[str] = []
+    chapter_urls: List[str] = []
 
     # get all basic chapter info and urls
     for chapter_ele in chapters_container.find_all('dt'):
@@ -122,16 +123,69 @@ def _scrape_book(url: str) -> BookSchema:
 
     return book
 
+def _upload_to_server(books: List[BookSchema], delete_on_collision: bool = False, second_attempt: bool = False):
+    """Upload books to showcase server"""
+    collisions = []
+    for book in books:
+        info(f"Uploading {book['title']}...")
+
+        try: 
+            r = requests.post(f"{os.getenv('SERVER_URL')}/books", json=book, headers={"Authorization": f"Bearer {os.getenv('AUTH_KEY')}"})
+            r.raise_for_status()
+            success(f"Successfully uploaded {book['title']}")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                warn(f"Collision detected for {book['title']}, {'deleting...' if delete_on_collision else 'skipping...' }")
+                if delete_on_collision:
+                    delete_r = requests.delete(f"{os.getenv('SERVER_URL')}/books/{book['slug']}", headers={"Authorization": f"Bearer {os.getenv('AUTH_KEY')}"})
+
+                    # successfully deleted book -> reupload (add to collisions)
+                    if delete_r.status_code == 200:
+                        info(f"Deleted {book['title']}")
+                        collisions.append(book)
+                    else:
+                        error(f"Failed to delete {book['title']}")
+            else:
+                error(f"Failed to upload {book['title']}")
+        except Exception as e:
+            error(f"An unexpected error occurred while uploading {book['title']}")
+    
+    # try to reupload books that collided
+    if len(collisions) > 0 and not second_attempt:
+        _upload_to_server(collisions, delete_on_collision, second_attempt=True)
+        
 def seed():
     """Seed the showcase server with seed data urls and generate immersive audio for each chapter"""
-    unprocessed_books: list[BookSchema] = []
+    unprocessed_books: List[BookSchema] = []
+
+    skip_immersion = confirmation("Skip chapter immersion?")
+    process_all = confirmation("Process all books?")
+    delete_on_collision = confirmation("Delete existing books on collision?")
 
     # load seed data
     with open(constants.showcase_seed_path, "r") as f:
-        seed_data: list[SeedDataSchema] = json.load(f)
-
+        seed_data: List[SeedDataSchema] = json.load(f)
         info(f"Loaded {len(seed_data)} entries...")
 
+        if not process_all:
+            # parse book name from url for better readability
+            slugs = [s['url'].replace('https://etc.usf.edu/lit2go/', '').split('/')[1].replace('/', '') for s in seed_data]
+
+            questions = [inquirer.Checkbox('books', message="Select books to process (Press <space> to select, Enter when finished)", choices=slugs)]
+            answers = inquirer.prompt(questions)
+
+            # no answers -> exit
+            if answers is None:
+                error("No books selected, exiting...")
+                return
+
+            # filter seed data based on selected books
+            seed_data = [s for s in seed_data if s['url'].replace('https://etc.usf.edu/lit2go/', '').split('/')[1].replace('/', '') in answers['books']]
+
+        if len(seed_data) == 0:
+            info("No books selected, exiting...")
+            return
+        
         for seed in seed_data:
             info(f"Scraping {seed['url']}...")
             unprocessed_book = _scrape_book(seed['url']) # scrape website for book data
@@ -141,7 +195,12 @@ def seed():
             unprocessed_books.append(unprocessed_book)
             success(f"Successfully scraped {unprocessed_book['title']}")
 
-    books: list[BookSchema] = []
+    if skip_immersion:
+        info("Skipping chapter immersion...")
+        _upload_to_server(unprocessed_books, delete_on_collision)
+        return
+
+    books: List[BookSchema] = []
 
     # run atmosphere generator on each chapter of each book
     for unprocessed_book in unprocessed_books:
@@ -160,11 +219,11 @@ def seed():
             # upload generated audio to s3 and get url
             url = upload_to_s3(temp_out_path, f'{unprocessed_book["slug"]}-{chapter["number"]}.mp3')
 
-            ambient_sections: list[AmbientSectionSchema] = []
+            ambient_sections: List[AmbientSectionSchema] = []
 
             # get all ambient sections
             with open(temp_mappings_out_path, "r") as f:
-                mappings: list[MappedTimestampSchema] = json.load(f)
+                mappings: List[MappedTimestampSchema] = json.load(f)
                 # get mappings for ambient sections
                 for mapping in mappings:
                     ambient_section: AmbientSectionSchema = {
@@ -173,25 +232,15 @@ def seed():
                         'description': mapping['description']
                     }
                     ambient_sections.append(ambient_section)
-
-            os.remove(temp_out_path) # delete the file after upload
-            os.remove(temp_mappings_out_path) # delete the file after upload
+            
+            # delete temp files after upload
+            os.remove(temp_out_path)
+            os.remove(temp_mappings_out_path)
 
             chapter['audio'] = url
             chapter['ambientSections'] = ambient_sections
 
         books.append(unprocessed_book)
 
-    # upload all books to showcase server
-    for book in books:
-        info(f"Uploading {book['title']}...")
-
-        try: 
-            r = requests.post(f"{os.getenv('SERVER_URL')}/books", json=book, headers={"Authorization": f"Bearer {os.getenv('AUTH_KEY')}"})
-            r.raise_for_status()
-            success(f"Successfully uploaded {book['title']}")
-        except requests.exceptions.HTTPError as e:
-            print(e)
-            error(f"Failed to upload {book['title']}")
-        except Exception as e:
-            error(f"An unexpected error occurred while uploading {book['title']}")
+    # upload all immersive books to showcase server
+    _upload_to_server(books, delete_on_collision)
