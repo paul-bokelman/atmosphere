@@ -1,16 +1,12 @@
 from typing import Optional, List
+from lib.types import MappedTimestampSchema
 import json
 import os
 import time
 from termcolor import colored
 import google.generativeai as genai
-from constants import mappings_out
 from lib.timestamps import TimestampSchema
 from lib.utils import info, sfx_candidates, candidate_sfx_file
-
-# adjusted schema for the addition of sound
-class MappedTimestampSchema(TimestampSchema):
-    sound_id: str
 
 # system instructions passed into model
 instructions = f"""
@@ -21,8 +17,8 @@ instructions_check = f"""
 Listen to the following audio. Does the uploaded audio match the feel and setting of the text description? Respond 1 if the audio and description match, and 0 otherwise. The audio and description do NOT need to match perfectly, but must match to 65% accuracy. RESPOND WITH ONLY a 0 or a 1!
 """
 
-# generate mapped timestamps
-def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_out, skip: bool = False) -> List[MappedTimestampSchema]:
+def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool = False) -> List[MappedTimestampSchema]:
+    """Generate mapped timestamps from input timestamps"""
     # if skip and file exists, return file
     if skip and out is not None and os.path.exists(out):
         info("Skipping mappings generation, using existing file...")
@@ -48,7 +44,7 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
             candidates_dict = sfx_candidates(category=timestamp['category'], keywords = None)
 
 
-        for i in range(5):
+        for i in range(1):
             candidates = ""
             for s in candidates_dict:
                 candidates += f"{s['description']} ({s['id']})\n"
@@ -62,7 +58,7 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
             if sound_id == "-1":
                 #print("sound id: ", -1)
                 #print(candidates)
-                print(f"{colored('NOTHING FOUND', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
+                print(f"{colored('MISS', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
                 break
             else:
                 #upload choice by id to gemini and ask for confirmation
@@ -84,12 +80,10 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str] = mappings_ou
                     break
                 else: #remove tested candidate from candidates
                     if i == 4:
-                        print(f"{colored('NOTHING FOUND', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
+                        print(f"{colored('MISS', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
                         break
                     else:
                         candidates_dict = [d for d in candidates_dict if d['id'] != sound_id]
-                    
-        
 
     # write mapped timestamps to file if specified
     if out is not None:
