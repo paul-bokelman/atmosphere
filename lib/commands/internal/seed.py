@@ -7,7 +7,7 @@ import requests
 import inquirer
 from bs4 import BeautifulSoup, Tag
 import constants
-from commands import general
+from lib.commands.general import generator
 from lib.utils import info, success, error, warn, time_to_ms, ms_to_s, upload_to_s3, confirmation
 
 def _scrape_book(url: str) -> BookSchema:
@@ -214,7 +214,7 @@ def seed():
             temp_mappings_out_path = f"./mappings-{unprocessed_book['slug']}-{chapter['number']}.json"
 
             # generate immersive audio for chapter audio
-            general.generate({"recording_location": chapter['audio'], "mappings_out": temp_mappings_out_path, "out": temp_out_path})
+            generator.generate({"recording_location": chapter['audio'], "mappings_out": temp_mappings_out_path, "out": temp_out_path})
 
             # upload generated audio to s3 and get url
             url = upload_to_s3(temp_out_path, f'{unprocessed_book["slug"]}-{chapter["number"]}.mp3')
