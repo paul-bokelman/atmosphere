@@ -9,6 +9,22 @@ from termcolor import _types, colored
 from pydub import AudioSegment
 import constants
 
+def info(message: str, color: _types.Color = "grey"):
+    """Print info message"""
+    print(colored(message, color))
+
+def success(message: str):
+    """Print success message"""
+    print(colored(message, "green"))
+
+def error(message: str):
+    """Print error message"""
+    print(colored(message, "red"))
+
+def warn(message: str):
+    """Print warning message"""
+    print(colored(message, "yellow"))
+
 def ms(seconds: int) -> int:
     """Convert seconds to milliseconds"""
     return seconds * 1000
@@ -23,7 +39,6 @@ def time_to_s(interval: str) -> int:
     minutes, seconds = interval.split(':')
     return int(int(minutes) * 60 + int(seconds))
 
-# function to convert ms to time string
 def ms_to_s(ms: int):
     """Convert milliseconds to seconds"""
     return int(ms / 1000)
@@ -43,25 +58,9 @@ def confirmation(message: str) -> bool:
     answers = inquirer.prompt(questions)
     # no answers -> return false
     if answers is None:
-        print(colored("No answers, returning to menu...", "red"))
+        error("No answers, returning to menu...")
         return False
     return answers['confirmation']
-
-def info(message: str, color: _types.Color = "grey"):
-    """Print info message"""
-    print(colored(message, color))
-
-def success(message: str):
-    """Print success message"""
-    print(colored(message, "green"))
-
-def error(message: str):
-    """Print error message"""
-    print(colored(message, "red"))
-
-def warn(message: str):
-    """Print warning message"""
-    print(colored(message, "yellow"))
 
 def sfx_candidates(category: Optional[str], keywords: List[str]) -> list[dict]:
     """Get sound effects candidates from BBC SFX API"""
