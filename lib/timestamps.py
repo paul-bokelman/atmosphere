@@ -26,7 +26,7 @@ timestamps_response_schema = {
 
 # system instructions for the model
 instructions = f"""
-Your job is to listen to an audio book recording and identify timestamps where the setting or environment is described. When you hear a setting or environment described, note the timestamp, give a detailed general/abstracted description of the setting or environment, choose the category that best describes the setting or environment, and give a brief list of keywords that describe the setting or environment that is related to both the description and selected category. Additionally ensure the timestamp is in the format mm:ss and the category is one of the following: {', '.join(constants.categories)}.
+Your job is to listen to an audio book recording and identify areas where the setting or environment is described. When you hear a setting or environment described, note the timestamp, give a detailed general description of the setting or environment, choose the category that best describes the setting or environment, and give a brief list of keywords that are related description. Additionally ensure the timestamp is in the format mm:ss and the category is one of the following: {', '.join(constants.categories)}.
 """
 
 def generate(recording: str, out: Optional[str] = None, skip: bool = False) -> List[TimestampSchema]:
@@ -59,6 +59,8 @@ def generate(recording: str, out: Optional[str] = None, skip: bool = False) -> L
     if out is not None:
         with open(out, 'w') as file:
             json.dump(timestamps, file, indent=4)
+
+    info(f"Generated {len(timestamps)} timestamps")
 
     # convert output to python dictionary
     return timestamps

@@ -105,3 +105,8 @@ def upload_to_s3(path: str, object_name: str) -> str:
     s3.upload_file(Filename=path, Bucket=bucket_name, Key=object_name)
 
     return get_url_from_bucket(object_name)
+
+def match_target_amplitude(sound: AudioSegment, target_dBFS: float) -> AudioSegment:
+    """Match target amplitude of sound"""
+    change_in_dBFS = target_dBFS - sound.dBFS
+    return sound.apply_gain(change_in_dBFS)
