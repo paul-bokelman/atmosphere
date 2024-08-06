@@ -5,7 +5,7 @@ import os
 import urllib.request
 import google.generativeai as genai
 import constants
-from lib.utils import info, success, is_url
+from lib.utils import info, success, error, is_url
 
 # todo: convert to proper response_schema object
 
@@ -53,15 +53,23 @@ def generate(recording: str, out: Optional[str] = None, skip: bool = False) -> L
     success("Successfully uploaded audio file")
 
     response = model.generate_content([file]) # generate timestamps
-    timestamps = json.loads(response.text)
-    
-    # output response to json file
-    if out is not None:
-        with open(out, 'w') as file:
-            json.dump(timestamps, file, indent=4)
 
-    info(f"Generated {len(timestamps)} timestamps")
+    try: 
+        timestamps = json.loads(response.text)
+        
+        # output response to json file
+        if out is not None:
+            with open(out, 'w') as file:
+                json.dump(timestamps, file, indent=4)
 
-    # convert output to python dictionary
-    return timestamps
+        info(f"Generated {len(timestamps)} timestamps")
 
+        # convert output to python dictionary
+        return timestamps
+    except ValueError:
+        error("Invalid response from model, proceeding with empty timestamps...")
+        error(f'Received: {response.text}')
+        return []
+    except Exception as e:
+        error(f"An unexpected error occurred: {e}")
+        return []

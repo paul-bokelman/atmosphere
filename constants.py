@@ -17,7 +17,7 @@ categories = ['Aircraft', 'Animals', 'Applause', 'Atmosphere', 'Bells', 'Clocks'
 # audio overlay configuration
 audio_overlay_config: AudioOverlayConfigSchema = {
     "margins": (3000, 3000),
-    "gain": -24, # dB
+    "gain": -21, # dB
     "fade": (3000, 3000),
     "length": 15000,
 }

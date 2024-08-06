@@ -6,7 +6,7 @@ import time
 from termcolor import colored
 import google.generativeai as genai
 import constants
-from lib.utils import info, warn, sfx_candidates
+from lib.utils import info, warn,error, sfx_candidates
 
 mappings_response_schema = {
     "type": "object",
@@ -23,7 +23,10 @@ You will be given a list of sound effects in the format [(ID) | description] and
 
 def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool = False) -> List[MappedTimestampSchema]:
     """Generate mapped timestamps from input timestamps"""
-
+    if len(timestamps) == 0:
+        info("No timestamps found, proceeding with empty mappings...")
+        return []
+    
     # if skip and file exists, return file
     if skip and out is not None and os.path.exists(out):
         info("Skipping mappings generation, using existing file...")
@@ -73,24 +76,33 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
 
         response = model.generate_content([timestamp['description'], candidates_str]) # get sound id from model response
 
-        # extract id and description from model response
-        json_response = json.loads(response.text)
-        id, description = json_response['id'], json_response['description']
+        try:
+            # extract id and description from model response
+            json_response = json.loads(response.text)
+            id, description = json_response['id'], json_response['description']
 
-        # no similar sound found -> notify and continue
-        if id == "-1":
-            warn(f"No suitable sfx found for timestamp at index {index} from list of {len(candidates)} candidates")
+            # no similar sound found -> notify and continue
+            if id == "-1":
+                warn(f"No suitable sfx found for timestamp at index {index} from list of {len(candidates)} candidates")
+                continue
+
+            # add mapped timestamp to list
+            print(f"{colored('Selected', 'grey')} {colored(id, 'green')} {colored(f'from list of {len(candidates)} candidates for timestamp at index {index}', 'grey')}")
+
+            # add mapped timestamp to list
+            mapped_timestamps.append({
+                "timestamp": timestamp,
+                'sound_id': id,
+                'sound_description': description,
+            })
+        except ValueError:
+            error(f"Invalid response from model at index {index}, skipping...")
+            error(f'Received: {response.text}')
             continue
-
-        # add mapped timestamp to list
-        print(f"{colored('Selected', 'grey')} {colored(id, 'green')} {colored(f'from list of {len(candidates)} candidates for timestamp at index {index}', 'grey')}")
-
-        # add mapped timestamp to list
-        mapped_timestamps.append({
-            "timestamp": timestamp,
-            'sound_id': id,
-            'sound_description': description,
-        })
+        except Exception as e:
+            print(e)
+            error(f"Error processing timestamp at index {index}, skipping...")
+            continue
 
     # write mapped timestamps to file if specified
     if out is not None:
