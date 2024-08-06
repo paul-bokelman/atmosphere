@@ -6,13 +6,10 @@ from termcolor import colored
 import google.generativeai as genai
 from lib.commands.general.generator import generate
 from lib.commands.interfaces import general_interface, internal_interface
-from lib.utils import info
-from absl import logging
-
-logging.set_verbosity(logging.FATAL) # only log fatal errors
+from lib.utils import info, warn, error
 
 def exit_command():
-    print("Thanks for using Atmosphere, exiting...")
+    info("Thanks for using Atmosphere, exiting...")
     return exit()
 
 commands = {
@@ -31,15 +28,15 @@ def main():
   env = args.env if args.env else "development"
 
   if env not in ["development", "production"]:
-    print("Invalid environment, please use 'development' or 'production'")
+    error("Invalid environment, please use 'development' or 'production'")
     return
   
   info(f"Loading environment file .env.{env}")
 
   if env == "production":
-    print(colored(f"Atmosphere is running in {env} environment", 'yellow'))
+    warn(f"Atmosphere is running in {env} environment")
 
-  load_dotenv(f".env.{env}", verbose=True) 
+  load_dotenv(f".env.{env}", verbose=True)  # load env vars from desired file
 
   genai.configure(api_key=os.getenv('GEMINI_API_KEY')) # configure gemini with api key
 

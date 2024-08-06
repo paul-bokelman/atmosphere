@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Optional, Any
 from mypy_boto3_s3 import S3Client
 import os
 import requests
@@ -8,6 +8,22 @@ import boto3
 from termcolor import _types, colored
 from pydub import AudioSegment
 import constants
+
+def info(message: str, color: _types.Color = "grey"):
+    """Print info message"""
+    print(colored(message, color))
+
+def success(message: str):
+    """Print success message"""
+    print(colored(message, "green"))
+
+def error(message: str):
+    """Print error message"""
+    print(colored(message, "red"))
+
+def warn(message: str):
+    """Print warning message"""
+    print(colored(message, "yellow"))
 
 def ms(seconds: int) -> int:
     """Convert seconds to milliseconds"""
@@ -23,7 +39,6 @@ def time_to_s(interval: str) -> int:
     minutes, seconds = interval.split(':')
     return int(int(minutes) * 60 + int(seconds))
 
-# function to convert ms to time string
 def ms_to_s(ms: int):
     """Convert milliseconds to seconds"""
     return int(ms / 1000)
@@ -43,33 +58,24 @@ def confirmation(message: str) -> bool:
     answers = inquirer.prompt(questions)
     # no answers -> return false
     if answers is None:
-        print(colored("No answers, returning to menu...", "red"))
+        error("No answers, returning to menu...")
         return False
     return answers['confirmation']
 
-def info(message: str, color: _types.Color = "grey"):
-    """Print info message"""
-    print(colored(message, color))
-
-def success(message: str):
-    """Print success message"""
-    print(colored(message, "green"))
-
-def error(message: str):
-    """Print error message"""
-    print(colored(message, "red"))
-
-def warn(message: str):
-    """Print warning message"""
-    print(colored(message, "yellow"))
-
-def sfx_candidates(category: str, keywords: List[str]):
+def sfx_candidates(category: Optional[str], keywords: List[str]) -> list[dict]:
     """Get sound effects candidates from BBC SFX API"""
-    r = requests.post(constants.bbc_sfx_url, json={
-        "criteria":{"from":0,"size":1000,"tags":keywords,"categories":[category],"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
-    })
+    categories = constants.categories if category is None else [category]
 
-    return r.json()['results']  # formatted_candidates
+    try:
+        r = requests.post(constants.bbc_sfx_url, json={
+            "criteria":{"from":0,"size":1000,"tags":keywords,"categories":categories,"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
+        })
+
+        return r.json()['results']
+    except Exception as e:
+        error(f"Error fetching sfx candidates, continuing with empty list...")
+        error(f"Error: {e}",)
+        return []
 
 def candidate_sfx_file(id: str) -> AudioSegment:
     """Get sound effect file from BBC SFX API"""
@@ -104,3 +110,8 @@ def upload_to_s3(path: str, object_name: str) -> str:
     s3.upload_file(Filename=path, Bucket=bucket_name, Key=object_name)
 
     return get_url_from_bucket(object_name)
+
+def match_target_amplitude(sound: AudioSegment, target_dBFS: float) -> AudioSegment:
+    """Match target amplitude of sound"""
+    change_in_dBFS = target_dBFS - sound.dBFS
+    return sound.apply_gain(change_in_dBFS)
