@@ -63,14 +63,20 @@ def warn(message: str):
     """Print warning message"""
     print(colored(message, "yellow"))
 
-def sfx_candidates(category: Optional[str], keywords: List[str]) -> dict:
+def sfx_candidates(category: Optional[str], keywords: List[str]) -> list[dict]:
     """Get sound effects candidates from BBC SFX API"""
     categories = constants.categories if category is None else [category]
-    r = requests.post(constants.bbc_sfx_url, json={
-        "criteria":{"from":0,"size":1000,"tags":keywords,"categories":categories,"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
-    })
 
-    return r.json()['results']  # formatted_candidates
+    try:
+        r = requests.post(constants.bbc_sfx_url, json={
+            "criteria":{"from":0,"size":1000,"tags":keywords,"categories":categories,"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
+        })
+
+        return r.json()['results']
+    except Exception as e:
+        error(f"Error fetching sfx candidates, continuing with empty list...")
+        error(f"Error: {e}",)
+        return []
 
 def candidate_sfx_file(id: str) -> AudioSegment:
     """Get sound effect file from BBC SFX API"""

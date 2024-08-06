@@ -5,14 +5,16 @@ import requests
 from bs4 import BeautifulSoup, Tag
 from lib.utils import info, success
 
-def book(url: str) -> BookSchema:
-    """Given a URL, scrape the website for book data and return a BookSchema object"""
+def _get_soup(url: str) -> BeautifulSoup:
+    """Get a BeautifulSoup object from a URL"""
     assert "https://etc.usf.edu/lit2go/" in url, "Invalid URL" # only lit2go urls are supported
     r = requests.get(url)
-
     assert r.status_code == 200, "Failed to fetch page"
+    return BeautifulSoup(r.content, 'html.parser')
 
-    soup = BeautifulSoup(r.content, 'html.parser')
+def book(url: str) -> BookSchema:
+    """Given a URL, scrape the website for book data and return a BookSchema object"""
+    soup = _get_soup(url)
 
     assert soup.h2 is not None, "No title found"
     assert soup.h3 is not None, "No author found"
@@ -57,6 +59,11 @@ def book(url: str) -> BookSchema:
         chapters=[]
     )
 
+    return book
+
+def chapters(book: BookSchema, book_url: str) -> List[ChapterSchema]:
+    soup = _get_soup(book_url)
+
     chapters_container = soup.find('dl')
     assert chapters_container is not None, "Chapters container not found"
     assert isinstance(chapters_container, Tag), "Chapters container is not a Tag"
@@ -73,8 +80,13 @@ def book(url: str) -> BookSchema:
 
         chapter_urls.append(url)
 
+    chapters: List[ChapterSchema] = []
+
     # get audio and text from each chapter
     for (chapter_index, chapter_url) in enumerate(chapter_urls):
+        if book['chapters'] and len(book['chapters']) > chapter_index:
+            info(f"Chapter {chapter_index + 1} of {book['title']} already cached, skipping...")
+            continue
         r = requests.get(chapter_url)
         cs = BeautifulSoup(r.content, 'html.parser') # get chapter page soup
 
@@ -112,8 +124,8 @@ def book(url: str) -> BookSchema:
             ambientSections=[],
         )
 
-        book['chapters'].append(chapter)
+        chapters.append(chapter)
 
         success(f"Successfully scraped chapter {chapter['number']} of {book['title']}")
 
-    return book
+    return chapters

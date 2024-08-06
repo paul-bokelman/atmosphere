@@ -8,7 +8,7 @@ showcase_seed_path = "./static/seed-data.json"
 recordings_dir = "./media/recordings"
 out_dir = "./media/out"
 media_out = f"{out_dir}/generated.mp3"
-seed_req_out_dir = f"{out_dir}/seed-requests"
+seed_cache_dir = f"{out_dir}/seed-cache"
 
 # removed: Events, Comedy, Toys, Birds
 categories = ['Aircraft', 'Animals', 'Applause', 'Atmosphere', 'Bells', 'Clocks', 'Crowds', 'Daily Life', 'Destruction', 'Electronics', 'Fire', 'Footsteps', 'Industry', 'Machines', 'Medical', 'Military', 'Nature', 'Sport', 'Transport']

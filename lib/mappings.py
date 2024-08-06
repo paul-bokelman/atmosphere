@@ -23,9 +23,6 @@ You will be given a list of sound effects in the format [(ID) | description] and
 
 def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool = False) -> List[MappedTimestampSchema]:
     """Generate mapped timestamps from input timestamps"""
-    if len(timestamps) == 0:
-        info("No timestamps found, proceeding with empty mappings...")
-        return []
     
     # if skip and file exists, return file
     if skip and out is not None and os.path.exists(out):
@@ -95,9 +92,9 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
                 'sound_id': id,
                 'sound_description': description,
             })
-        except ValueError:
+        except ValueError as e:
             error(f"Invalid response from model at index {index}, skipping...")
-            error(f'Received: {response.text}')
+            error(f'Error: {e}')
             continue
         except Exception as e:
             print(e)

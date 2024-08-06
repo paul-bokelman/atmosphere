@@ -5,21 +5,20 @@ import requests
 import constants
 from lib.utils import info, success, error, warn
 
-def chapter(book_slug: str, chapter_data: ChapterSchema, delete_on_collision = False, save_request = False, second_attempt = False):
+def chapter(book_slug: str, chapter_data: ChapterSchema, delete_on_collision = False, second_attempt = False):
     """Upload a chapter related to a book to the showcase server"""
     collision = False
     info(f"Uploading chapter: {chapter_data['name']}...")
 
     url = f"{os.getenv('SERVER_URL')}/books/{book_slug}/{chapter_data['number']}"
 
-    # save request to file
-    if save_request:
-        if not os.path.exists(constants.seed_req_out_dir):
-            os.mkdir(constants.seed_req_out_dir)
-        if not os.path.exists(f"{constants.seed_req_out_dir}/{book_slug}"):
-            os.mkdir(f"{constants.seed_req_out_dir}/{book_slug}")
-        with open(f"{constants.seed_req_out_dir}/{book_slug}/{book_slug}-c{chapter_data['number']}.json", "w") as f:
-            json.dump(chapter_data, f)
+    # cache request to file
+    if not os.path.exists(constants.seed_cache_dir):
+        os.mkdir(constants.seed_cache_dir)
+    if not os.path.exists(f"{constants.seed_cache_dir}/{book_slug}"):
+        os.mkdir(f"{constants.seed_cache_dir}/{book_slug}")
+    with open(f"{constants.seed_cache_dir}/{book_slug}/{book_slug}-c{chapter_data['number']}.json", "w") as f:
+        json.dump(chapter_data, f)
 
     try: 
         r = requests.post(url, json=chapter_data, headers={"Authorization": f"Bearer {os.getenv('AUTH_KEY')}"})
@@ -47,9 +46,9 @@ def chapter(book_slug: str, chapter_data: ChapterSchema, delete_on_collision = F
 
     # try to reupload book if collision (only once)
     if collision and not second_attempt:
-        chapter(book_slug, chapter_data, delete_on_collision, save_request, second_attempt=True)
+        chapter(book_slug, chapter_data, delete_on_collision, second_attempt=True)
 
-def book(book_data: BookSchema, delete_on_collision = False, save_request = False, second_attempt = False):
+def book(book_data: BookSchema, delete_on_collision = False, second_attempt = False):
     """Upload a book to the showcase server"""
     collision = False
     info(f"Uploading book: {book_data['title']}...")
@@ -57,14 +56,13 @@ def book(book_data: BookSchema, delete_on_collision = False, save_request = Fals
     post_url = f"{os.getenv('SERVER_URL')}/books"
     delete_url = f"{os.getenv('SERVER_URL')}/books/{book_data['slug']}"
     
-    # save request to file
-    if save_request:
-        if not os.path.exists(constants.seed_req_out_dir):
-            os.mkdir(constants.seed_req_out_dir)
-        if not os.path.exists(f"{constants.seed_req_out_dir}/{book_data['slug']}"):
-            os.mkdir(f"{constants.seed_req_out_dir}/{book_data['slug']}")
-        with open(f"{constants.seed_req_out_dir}/{book_data['slug']}/{book_data['slug']}.json", "w") as f:
-            json.dump(book_data, f)
+    # cache request to file
+    if not os.path.exists(constants.seed_cache_dir):
+        os.mkdir(constants.seed_cache_dir)
+    if not os.path.exists(f"{constants.seed_cache_dir}/{book_data['slug']}"):
+        os.mkdir(f"{constants.seed_cache_dir}/{book_data['slug']}")
+    with open(f"{constants.seed_cache_dir}/{book_data['slug']}/{book_data['slug']}.json", "w") as f:
+        json.dump(book_data, f)
 
     try: 
         r = requests.post(post_url, json=book_data, headers={"Authorization": f"Bearer {os.getenv('AUTH_KEY')}"})
@@ -92,4 +90,4 @@ def book(book_data: BookSchema, delete_on_collision = False, save_request = Fals
 
     # try to reupload book if collision (only once)
     if collision and not second_attempt:
-        book(book_data, delete_on_collision, save_request, second_attempt=True)
+        book(book_data, delete_on_collision, second_attempt=True)

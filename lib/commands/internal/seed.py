@@ -1,13 +1,18 @@
 from typing import List
-from lib.types import BookSchema, SeedDataSchema, AmbientSectionSchema, MappedTimestampSchema
+from lib.types import BookSchema, SeedDataSchema, ChapterSchema, AmbientSectionSchema, MappedTimestampSchema
 import os
 import copy
+import shutil
 import json
 import inquirer
 import constants
 from lib.commands.general import generator
 from lib.utils import info, success, error, time_to_ms, ms_to_s, upload_to_s3, confirmation
 from lib.commands.internal.helpers import scrape, upload
+
+def _slugify(url: str) -> str:
+    """Convert a url to a slug"""
+    return url.replace('https://etc.usf.edu/lit2go/', '').split('/')[1].replace('/', '')
         
 def seed():
     """Seed the showcase server with seed data urls and generate immersive audio for each chapter"""
@@ -15,8 +20,20 @@ def seed():
 
     skip_immersion = confirmation("Skip chapter immersion?")
     process_all = confirmation("Process all books?")
-    delete_on_collision = confirmation("Delete existing books on collision?")
-    save_request = confirmation("Save request data?")
+    delete_chapters_on_collision = confirmation("Delete existing chapters on collision?")
+    reset_cache = confirmation("Reset cache?")
+
+    if reset_cache:
+        questions = [inquirer.Text("secondary_confirmation", message="Type 'delete' to confirm cache reset")]
+        answers = inquirer.prompt(questions)
+        if answers is None or answers['secondary_confirmation'] != 'delete':
+            reset_cache = False
+            error("Invalid confirmation, cache reset aborted...")
+
+    if reset_cache:
+        info("Resetting cache...")
+        shutil.rmtree(constants.seed_cache_dir, ignore_errors=True)
+        success("Cache reset successfully")
 
     # load seed data
     with open(constants.showcase_seed_path, "r") as f:
@@ -25,7 +42,7 @@ def seed():
 
         if not process_all:
             # parse book name from url for better readability
-            slugs = [s['url'].replace('https://etc.usf.edu/lit2go/', '').split('/')[1].replace('/', '') for s in seed_data]
+            slugs = [_slugify(s['url']) for s in seed_data]
 
             questions = [inquirer.Checkbox('books', message="Select books to process (Press <space> to select, Enter when finished)", choices=slugs)]
             answers = inquirer.prompt(questions)
@@ -43,13 +60,30 @@ def seed():
             return
         
         for seed in seed_data:
-            info(f"Scraping {seed['url']}...")
-            unprocessed_book = scrape.book(seed['url']) # scrape website for book data
-            unprocessed_book["accentColor"] = seed["accentColor"]
-            unprocessed_book["cover"] = seed["cover"]
+            slug = _slugify(seed['url'])
 
-            unprocessed_books.append(unprocessed_book)
-            success(f"Successfully scraped {unprocessed_book['title']}")
+            if os.path.exists(f"{constants.seed_cache_dir}/{slug}"):
+                info(f"Found cache for {slug}, using cached data...")
+                unprocessed_book: BookSchema = json.load(open(f"{constants.seed_cache_dir}/{slug}/{slug}.json", "r"))
+                for file in [f for f in os.listdir(f"{constants.seed_cache_dir}/{slug}") if f != f"{slug}.json"]:
+                    chapter: ChapterSchema = json.load(open(f"{constants.seed_cache_dir}/{slug}/{file}", "r"))
+                    unprocessed_book['chapters'].append(chapter)
+
+                chapters = scrape.chapters(unprocessed_book, book_url=seed['url']) # scrape remaining chapters
+
+                for chapter in chapters:
+                    unprocessed_book['chapters'].append(chapter)
+
+                unprocessed_books.append(unprocessed_book)
+            else:
+                info(f"Scraping {seed['url']}...")
+                unprocessed_book = scrape.book(url=seed['url']) # scrape website for book data
+                unprocessed_book["accentColor"] = seed["accentColor"]
+                unprocessed_book["cover"] = seed["cover"]
+                unprocessed_book['chapters'] =  scrape.chapters(unprocessed_book, book_url=seed['url']) # scrape all chapters
+                unprocessed_books.append(unprocessed_book)
+
+            success(f"Successfully fetched {unprocessed_book['title']}")
 
     # run atmosphere generator on each chapter of each book
     for unprocessed_book in unprocessed_books:
@@ -59,16 +93,18 @@ def seed():
         book_shell['chapters'] = []
 
         # upload basic book info to server (without chapters)
-        upload.book(book_shell, delete_on_collision, save_request)
+        upload.book(book_shell, delete_on_collision=False)
 
         # process each chapter
-        for chapter in unprocessed_book['chapters']:
-            if skip_immersion:
+        for chapter in sorted(unprocessed_book['chapters'], key=lambda x: x['number']):
+            if skip_immersion or len(chapter['ambientSections']) > 0:
+                if len(chapter['ambientSections']) > 0:
+                    info(f"Entry {chapter['number']}: {chapter['name']} already processed")
                 info("Skipping chapter immersion...")
-                upload.chapter(unprocessed_book['slug'], chapter, delete_on_collision, save_request) # upload chapter without immersive audio
+                upload.chapter(unprocessed_book['slug'], chapter, delete_on_collision=delete_chapters_on_collision) # upload chapter without immersive audio
                 continue
 
-            info(f"Processing chapter {chapter['number']}...")
+            info(f"Processing entry {chapter['number']}: {chapter['name']}...")
 
             temp_out_path = f"./{unprocessed_book['slug']}-{chapter['number']}.mp3"
             temp_mappings_out_path = f"./mappings-{unprocessed_book['slug']}-{chapter['number']}.json"
@@ -103,4 +139,4 @@ def seed():
             chapter['ambientSections'] = ambient_sections
 
             # upload chapter to server
-            upload.chapter(unprocessed_book['slug'], chapter, delete_on_collision, save_request)
+            upload.chapter(unprocessed_book['slug'], chapter, delete_on_collision=delete_chapters_on_collision)

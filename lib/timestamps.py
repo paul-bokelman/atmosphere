@@ -68,7 +68,6 @@ def generate(recording: str, out: Optional[str] = None, skip: bool = False) -> L
         return timestamps
     except ValueError:
         error("Invalid response from model, proceeding with empty timestamps...")
-        error(f'Received: {response.text}')
         return []
     except Exception as e:
         error(f"An unexpected error occurred: {e}")
