@@ -1,24 +1,28 @@
 from typing import Optional, List
-from lib.types import MappedTimestampSchema
+from lib.types import MappedTimestampSchema, TimestampSchema
 import json
 import os
-import time
 from termcolor import colored
 import google.generativeai as genai
-from lib.timestamps import TimestampSchema
-from lib.utils import info, sfx_candidates, candidate_sfx_file
+import constants
+from lib.utils import info, warn, sfx_candidates
+
+mappings_response_schema = {
+    "type": "object",
+    "properties": {
+        "id": {"type": "string"},
+        "description": {"type": "string"}
+    }
+}
 
 # system instructions passed into model
 instructions = f"""
-Choose the sound effect that best matches the given description. Your response should return the just the ID of the selected sound or -1 if there was no reasonably close match. Do not ignore leading zeroes in the ID! The sound options are of the form [description (ID)], return the entire id or -1 if no match is found!
-"""
-
-instructions_check = f"""
-Listen to the following audio. Does the uploaded audio match the feel and setting of the text description? Respond 1 if the audio and description match, and 0 otherwise. The audio and description do NOT need to match perfectly, but must match to 65% accuracy. RESPOND WITH ONLY a 0 or a 1!
+You will be given a list of sound effects in the format [(ID) | description] and a description of a setting or environment. Your job is to choose the sound effect from the list that best matches the given description. When the sound effect is found return it's id and description. If no sound effect is found, return -1 and an empty description.
 """
 
 def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool = False) -> List[MappedTimestampSchema]:
     """Generate mapped timestamps from input timestamps"""
+
     # if skip and file exists, return file
     if skip and out is not None and os.path.exists(out):
         info("Skipping mappings generation, using existing file...")
@@ -26,64 +30,62 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
 
     mapped_timestamps: List[MappedTimestampSchema] = [] # newly mapped timestamps
 
-    # initialize model with system instructions and json response
+    # initialize model with system instructions and response schema
     model = genai.GenerativeModel(model_name='gemini-1.5-flash', 
                                   system_instruction=instructions, 
-                                  generation_config={"response_mime_type": "text/plain"})
+                                  generation_config={
+                                      "response_mime_type": "application/json", 
+                                      "response_schema": mappings_response_schema
+                                    }
+                                )
     
-    model2 = genai.GenerativeModel(model_name='gemini-1.5-flash', 
-                                  system_instruction=instructions_check,
-                                  generation_config={"response_mime_type": "text/plain"})
-
     # timestamp -> find suitable sound -> add to mapped_timestamps
-    for timestamp in timestamps:
+    for (index, timestamp) in enumerate(timestamps):
+        category = timestamp['category'] if timestamp['category'] in constants.categories else None # ensure category is valid
+        candidates = sfx_candidates(category=category, keywords=timestamp['keywords']) # get sound candidates
+        
+        # if no candidates found, search without keywords
+        if len(candidates) == 0:
+            candidates = sfx_candidates(category=timestamp['category'], keywords = [])
+            # if still no candidates found, notify and skip
+            if len(candidates) == 0:
+                warn(f"No candidates found for timestamp at index {index}")
+                continue
+        
+        candidates_str = "" # candidates string for model input
 
-        candidates_dict = sfx_candidates(category=timestamp['category'], keywords=timestamp['keywords']) # get sound candidates
-    
-        if len(candidates_dict) == 0:
-            candidates_dict = sfx_candidates(category=timestamp['category'], keywords = None)
+        # format candidates for model input
+        for c in candidates:
+            candidate_str  = f"{(c['id'])} | "
 
+            # add band description if available
+            if 'additionalMetadata' in c:
+                if 'bandDescription' in c['additionalMetadata']:
+                    candidate_str += f"{c['additionalMetadata']['bandDescription']} - "
 
-        for i in range(1):
-            candidates = ""
-            for s in candidates_dict:
-                candidates += f"{s['description']} ({s['id']})\n"
-            #print(candidates)
+            candidate_str += f"{c['description']}"
+            candidates_str += candidate_str + "\n"
 
-            response = model.generate_content([timestamp['description'], candidates]) # get sound id from model response
-            time.sleep(3)
-            sound_id = response.text.strip() # get sound id from response
+        response = model.generate_content([timestamp['description'], candidates_str]) # get sound id from model response
 
-            # no similar sound found -> notify and skip
-            if sound_id == "-1":
-                #print("sound id: ", -1)
-                #print(candidates)
-                print(f"{colored('MISS', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
-                break
-            else:
-                #upload choice by id to gemini and ask for confirmation
-                
-                #print("sound id: ", sound_id)
-                #print("response: ", response.text)
-                #print(candidates)
-                audio = candidate_sfx_file(sound_id)
-                audio.export("out/candidate.mp3")
-                file = genai.upload_file("out/candidate.mp3")
+        # extract id and description from model response
+        json_response = json.loads(response.text)
+        id, description = json_response['id'], json_response['description']
 
-                response = model2.generate_content([file, ', ', timestamp['description']]) 
-                time.sleep(3)
-                
+        # no similar sound found -> notify and continue
+        if id == "-1":
+            warn(f"No suitable sfx found for timestamp at index {index} out of {len(candidates)} candidates")
+            continue
 
-                if response.text.strip() == "1":
-                    print(f"{colored('FOUND', 'green')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}.")
-                    mapped_timestamps.append({ "time": timestamp['time'], "description": timestamp['description'], 'category': timestamp['category'], 'keywords': timestamp['keywords'], "sound_id": sound_id})
-                    break
-                else: #remove tested candidate from candidates
-                    if i == 4:
-                        print(f"{colored('MISS', 'red')} - '{timestamp['description']}' with keywords {timestamp['keywords']} in category {timestamp['category']}")
-                        break
-                    else:
-                        candidates_dict = [d for d in candidates_dict if d['id'] != sound_id]
+        # add mapped timestamp to list
+        print(f"{colored('Selected', 'grey')} {colored(id, 'green')} {colored(f'out of {len(candidates)} candidates for timestamp at index {index}', 'grey')}")
+
+        # add mapped timestamp to list
+        mapped_timestamps.append({
+            "timestamp": timestamp,
+            'sound_id': id,
+            'sound_description': description,
+        })
 
     # write mapped timestamps to file if specified
     if out is not None:

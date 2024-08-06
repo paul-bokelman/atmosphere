@@ -1,4 +1,4 @@
-from typing import TypedDict, Union, NotRequired, List
+from typing import TypedDict, NotRequired, List
 
 # -------------------------------- ATMOSPHERE -------------------------------- #
 
@@ -21,8 +21,10 @@ class TimestampSchema(TypedDict):
     keywords: List[str]
 
 # adjusted schema for the addition of sound
-class MappedTimestampSchema(TimestampSchema):
+class MappedTimestampSchema(TypedDict):
+    timestamp: TimestampSchema
     sound_id: str
+    sound_description: str
 
 # --------------------------------- INTERNAL --------------------------------- #
 

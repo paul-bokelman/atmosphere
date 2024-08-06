@@ -146,7 +146,10 @@ def _upload_to_server(books: List[BookSchema], delete_on_collision: bool = False
                     else:
                         error(f"Failed to delete {book['title']}")
             else:
-                error(f"Failed to upload {book['title']}")
+                if e.response.status_code == 504:
+                    warn(f"Gateway timeout while uploading {book['title']}. Book may have been uploaded, please check server.")
+                else:
+                    error(f"Failed to upload {book['title']}")
         except Exception as e:
             error(f"An unexpected error occurred while uploading {book['title']}")
     
@@ -227,9 +230,9 @@ def seed():
                 # get mappings for ambient sections
                 for mapping in mappings:
                     ambient_section: AmbientSectionSchema = {
-                        'start': ms_to_s(time_to_ms(mapping['time']) - constants.audio_overlay_config['margins'][0]),
-                        'end': ms_to_s(time_to_ms(mapping['time']) +  constants.audio_overlay_config['margins'][1]),
-                        'description': mapping['description']
+                        'start': ms_to_s(time_to_ms(mapping['timestamp']['time']) - constants.audio_overlay_config['margins'][0]),
+                        'end': ms_to_s(time_to_ms(mapping['timestamp']['time']) +  constants.audio_overlay_config['margins'][1]),
+                        'description': mapping['sound_description']
                     }
                     ambient_sections.append(ambient_section)
             

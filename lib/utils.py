@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Optional, Any
 from mypy_boto3_s3 import S3Client
 import os
 import requests
@@ -63,10 +63,11 @@ def warn(message: str):
     """Print warning message"""
     print(colored(message, "yellow"))
 
-def sfx_candidates(category: str, keywords: List[str]):
+def sfx_candidates(category: Optional[str], keywords: List[str]) -> dict:
     """Get sound effects candidates from BBC SFX API"""
+    categories = constants.categories if category is None else [category]
     r = requests.post(constants.bbc_sfx_url, json={
-        "criteria":{"from":0,"size":1000,"tags":keywords,"categories":[category],"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
+        "criteria":{"from":0,"size":1000,"tags":keywords,"categories":categories,"durations":None,"continents":None,"sortBy":None,"source":None,"recordist":None,"habitat":None}
     })
 
     return r.json()['results']  # formatted_candidates

@@ -4,18 +4,15 @@
 
 Built for [Gemini API Developer Competition](https://ai.google.dev/competition)
 
-
-
-
 # About Atmosphere
 
 Atmosphere aims to enhance the storytelling experience by overlaying ambient audio onto audio book segments with strong auditory and sensory scenes. Atmosphere interacts with Gemini in three independent stages.
+
 1. Initially, Atmosphere is provided with the audio book in its entirety, and is tasked with locating timestamps within the audio book that correspond to scenes that would be enhanced by ambient audio. In addition to providing the timestamp of these scenes, Gemini also produces a concise description of the context of the scene, and salient keywords from the scene that construct the overall tone of the segment.
 2. Using the keywords gathered for each scene identified by Gemini, Atmosphere sifts through the 33,000+ sound effects and their associated keywords in the BBC sound effects library, and acquires all sounds with at least one keyword matching that of the scene. With all sound effects a minimum of one matching keyword compiled into a list, Gemini is prompted to pick the sound from the list that best matches the scene description created by Gemini in step 1.
 3. Once Gemini has made a choice for the best fitting sound amongst the candidates, Gemini is given the mp3 file for the sound effect, and is prompted to listen and determine if its own choice really matches the scene at hand. If so, the next scene is evaluated, otherwise Gemini picks a new sound and is prompted to confirm again.
 
 A gallery of Atmosphere's work can be accessed through a showcase web app located at https://github.com/paul-bokelman/atmosphere-showcase .
-
 
 # Using Atmosphere Locally
 
@@ -32,13 +29,8 @@ A gallery of Atmosphere's work can be accessed through a showcase web app locate
 
 Ultimately, a product like Atmosphere could be added onto audio book streaming services such as Google Play and Audible to offer customers an immersive option alongside standard audio books.
 
-
-
-
 # Reflection and Shortcomings
 
 Atmosphere excels at locating and assigning sounds for scenes that are general and require little to no contextualization or background information to properly classify. Examples of such scenes might be that of a river flowing in the distance, the hustle and bustle of a factory, or birds chirping. Scenes such as these can be simply taken at face value and directly interpreted without strict examination of tone, setting, and figurative language.
 
-  Admittedly, Atmosphere predictably struggles to convey adequate sensory enhancement in scenes that can not be snipped out of their place within the context of the story as a whole. Often Atmosphere takes scenes too literally and fails to understand the nuance of metaphors and may lose sight of the original scene. Similarly, Atmosphere has a tendency to place sound effects from far-removed and unfitting time frames into scenes; a habit that can be disorienting and distracting to listeners. Atmosphere regularly fails to recognize the nuanced differences between a busy medieval marketplace, and Times Square in the early 21st century. Again, this inadequacy is rooted in a lack of context for Gemini to draw from.
-
-
+Admittedly, Atmosphere predictably struggles to convey adequate sensory enhancement in scenes that can not be snipped out of their place within the context of the story as a whole. Often Atmosphere takes scenes too literally and fails to understand the nuance of metaphors and may lose sight of the original scene. Similarly, Atmosphere has a tendency to place sound effects from far-removed and unfitting time frames into scenes; a habit that can be disorienting and distracting to listeners. Atmosphere regularly fails to recognize the nuanced differences between a busy medieval marketplace, and Times Square in the early 21st century. Again, this inadequacy is rooted in a lack of context for Gemini to draw from.

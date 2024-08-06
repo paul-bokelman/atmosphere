@@ -19,7 +19,7 @@ def do(original_recording: str, mappings: List[MappedTimestampSchema], out: Opti
         length = constants.audio_overlay_config['length']
 
         audio = candidate_sfx_file(mapping['sound_id']) # get sound effect
-        position = time_to_ms(mapping['time']) - left_margin # position in milliseconds
+        position = time_to_ms(mapping['timestamp']['time']) - left_margin # position in milliseconds
         #/ fade and gain should be relative to audio length, margins current volume and recording volume
         audio = audio[0:length + right_margin].fade_in(left_fade).fade_out(right_fade).apply_gain(gain) # trim and fade
         recording = recording.overlay(audio, position=position) # overlay audio on recording
