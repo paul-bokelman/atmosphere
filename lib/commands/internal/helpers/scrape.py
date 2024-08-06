@@ -12,6 +12,10 @@ def _get_soup(url: str) -> BeautifulSoup:
     assert r.status_code == 200, "Failed to fetch page"
     return BeautifulSoup(r.content, 'html.parser')
 
+def _slugify(title: str) -> str:
+    """Convert a title to a slug"""
+    return title.lower().replace(" ", "-").replace(",", "")
+
 def book(url: str) -> BookSchema:
     """Given a URL, scrape the website for book data and return a BookSchema object"""
     soup = _get_soup(url)
@@ -21,7 +25,7 @@ def book(url: str) -> BookSchema:
 
     title = soup.h2.text.strip()
     author = soup.h3.text.replace("by ", "").strip()
-    slug = title.lower().replace(" ", "-")
+    slug = _slugify(title)
 
     description_container = soup.find('div', attrs={'id': 'column_primary'})
 

@@ -71,9 +71,9 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
             candidate_str += f"{c['description']}"
             candidates_str += candidate_str + "\n"
 
-        response = model.generate_content([timestamp['description'], candidates_str]) # get sound id from model response
-
         try:
+            response = model.generate_content([timestamp['description'], candidates_str]) # get sound id from model response
+
             # extract id and description from model response
             json_response = json.loads(response.text)
             id, description = json_response['id'], json_response['description']
@@ -92,12 +92,10 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
                 'sound_id': id,
                 'sound_description': description,
             })
-        except ValueError as e:
+        except ValueError:
             error(f"Invalid response from model at index {index}, skipping...")
-            error(f'Error: {e}')
             continue
-        except Exception as e:
-            print(e)
+        except Exception:
             error(f"Error processing timestamp at index {index}, skipping...")
             continue
 
