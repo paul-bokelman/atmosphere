@@ -123,11 +123,17 @@ def _scrape_book(url: str) -> BookSchema:
 
     return book
 
-def _upload_to_server(books: List[BookSchema], delete_on_collision: bool = False, second_attempt: bool = False):
+def _upload_to_server(books: List[BookSchema], delete_on_collision: bool = False, save_request = False, second_attempt: bool = False):
     """Upload books to showcase server"""
     collisions = []
     for book in books:
         info(f"Uploading {book['title']}...")
+
+        if save_request:
+            if not os.path.exists(constants.seed_req_out_dir):
+                os.mkdir(constants.seed_req_out_dir)
+            with open(f"{constants.seed_req_out_dir}/{book['slug']}.json", "w") as f:
+                json.dump(book, f)
 
         try: 
             r = requests.post(f"{os.getenv('SERVER_URL')}/books", json=book, headers={"Authorization": f"Bearer {os.getenv('AUTH_KEY')}"})
@@ -155,7 +161,7 @@ def _upload_to_server(books: List[BookSchema], delete_on_collision: bool = False
     
     # try to reupload books that collided
     if len(collisions) > 0 and not second_attempt:
-        _upload_to_server(collisions, delete_on_collision, second_attempt=True)
+        _upload_to_server(collisions, delete_on_collision, save_request, second_attempt=True)
         
 def seed():
     """Seed the showcase server with seed data urls and generate immersive audio for each chapter"""
@@ -164,6 +170,7 @@ def seed():
     skip_immersion = confirmation("Skip chapter immersion?")
     process_all = confirmation("Process all books?")
     delete_on_collision = confirmation("Delete existing books on collision?")
+    save_request = confirmation("Save request data?")
 
     # load seed data
     with open(constants.showcase_seed_path, "r") as f:
@@ -200,7 +207,7 @@ def seed():
 
     if skip_immersion:
         info("Skipping chapter immersion...")
-        _upload_to_server(unprocessed_books, delete_on_collision)
+        _upload_to_server(unprocessed_books, delete_on_collision, save_request)
         return
 
     books: List[BookSchema] = []
@@ -246,4 +253,4 @@ def seed():
         books.append(unprocessed_book)
 
     # upload all immersive books to showcase server
-    _upload_to_server(books, delete_on_collision)
+    _upload_to_server(books, delete_on_collision, save_request)

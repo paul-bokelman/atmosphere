@@ -2,6 +2,7 @@ from typing import Optional, List
 from lib.types import MappedTimestampSchema, TimestampSchema
 import json
 import os
+import time
 from termcolor import colored
 import google.generativeai as genai
 import constants
@@ -41,6 +42,10 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
     
     # timestamp -> find suitable sound -> add to mapped_timestamps
     for (index, timestamp) in enumerate(timestamps):
+        if index > 0 and index % 13 == 0:
+            warn("API rate limit reached, waiting for 20 seconds before continuing...")
+            time.sleep(20)
+
         category = timestamp['category'] if timestamp['category'] in constants.categories else None # ensure category is valid
         candidates = sfx_candidates(category=category, keywords=timestamp['keywords']) # get sound candidates
         
@@ -74,11 +79,11 @@ def generate(timestamps: List[TimestampSchema], out: Optional[str], skip: bool =
 
         # no similar sound found -> notify and continue
         if id == "-1":
-            warn(f"No suitable sfx found for timestamp at index {index} out of {len(candidates)} candidates")
+            warn(f"No suitable sfx found for timestamp at index {index} from list of {len(candidates)} candidates")
             continue
 
         # add mapped timestamp to list
-        print(f"{colored('Selected', 'grey')} {colored(id, 'green')} {colored(f'out of {len(candidates)} candidates for timestamp at index {index}', 'grey')}")
+        print(f"{colored('Selected', 'grey')} {colored(id, 'green')} {colored(f'from list of {len(candidates)} candidates for timestamp at index {index}', 'grey')}")
 
         # add mapped timestamp to list
         mapped_timestamps.append({
