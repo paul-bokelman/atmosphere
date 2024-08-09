@@ -40,7 +40,7 @@ Once all sounds have been selected for each scene, Atmosphere normalizes, fades,
 4. Add your Gemini API key to the `.env.development` as `GEMINI_API_KEY` file in the root of the Atmosphere directory.
 5. Create a `recordings` and `out` directory under a `media'`directory in the root of the Atmosphere directory (`/media/recordings/`, `/media/out`). This is where you will place the audio book you would like to generate an immersive version of.
 6. Place the audio book you would like to generate an immersive version of in the 'recordings' directory.
-7. Enter the command `python3.11 main.py`. This will beginning running the generator.
+7. Enter the command `python3.11 main.py`. This will begin running the generator.
 8. Once running, select "Generate Immersive Audio" in the drop down menu, and press enter.
 9. Follow the prompts to select the audio book you would like to generate an immersive version of
 10. The output mp3 file will be found in `/media/out/{YOUR_AUDIO_BOOK_NAME}/{YOUR_AUDIO_BOOK_NAME}-immersive.mp3`
