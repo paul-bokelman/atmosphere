@@ -3,6 +3,7 @@ import argparse
 from dotenv import load_dotenv
 import inquirer
 from termcolor import colored
+import colorama
 import google.generativeai as genai
 from lib.commands.general.generator import generate
 from lib.commands.interfaces import general_interface, internal_interface
@@ -37,6 +38,7 @@ def main():
     warn(f"Atmosphere is running in {env} environment")
 
   load_dotenv(f".env.{env}", verbose=True)  # load env vars from desired file
+  colorama.init() # initialize colorama for windows support
 
   genai.configure(api_key=os.getenv('GEMINI_API_KEY')) # configure gemini with api key
 
